@@ -18,7 +18,6 @@ class Publisher
 template <typename T>
 Publisher<T>::Publisher() noexcept
 {
-    std::cout << "hello publisher\n";
 }
 } // namespace smw::cpp
 

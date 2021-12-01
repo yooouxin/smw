@@ -1,0 +1,3 @@
+
+
+set(SMW_CXX_STANDARD 17)
