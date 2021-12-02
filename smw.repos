@@ -1,0 +1,29 @@
+repositories:
+    smw:
+        type: git
+        url: https://github.com/yooouxin/smw.git
+        version: master
+    iceoryx:
+        type:git
+        url: https://github.com/eclipse-iceoryx/iceoryx.git
+        version: master
+    foonathan_memory_vendor:
+        type: git
+        url: https://github.com/eProsima/foonathan_memory_vendor.git
+        version: master
+    fastcdr:
+        type: git
+        url: https://github.com/eProsima/Fast-CDR.git
+        version: master
+    fastrtps:
+        type: git
+        url: https://github.com/eProsima/Fast-DDS.git
+        version: master
+    fastddsgen:
+        type: git
+        url: https://github.com/eProsima/Fast-DDS-Gen.git
+        version: master
+    fastddsgen/thirdparty/idl-parser:
+        type: git
+        url: https://github.com/eProsima/IDL-Parser.git
+        version: master

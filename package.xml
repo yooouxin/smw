@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+    <name>smw</name>
+    <version>0.0.1</version>
+    <description>A Scalable Middleware,integration Eclipse iceoryx and Fast-DDS.</description>
+    <maintainer email="Yooouxin@outlook.com">youxinxin</maintainer>
+    <license>Apache 2.0</license>
+
+    <buildtool_depend>cmake</buildtool_depend>
+    <buildtool_depend>git</buildtool_depend>
+
+    <depend>fastrtps</depend>
+    <depend>iceoryx_posh</depend>
+
+    <doc_depend>doxygen</doc_depend>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+</package>
