@@ -26,8 +26,11 @@ class FastDDSWriter : public DdsWriter<T>
 
     ~FastDDSWriter() noexcept
     {
+        eprosima::fastrtps::types::ReturnCode_t return_code = eprosima::fastrtps::types::ReturnCode_t::RETCODE_ERROR;
         m_data_writer->close();
-        m_publisher->delete_contained_entities();
+        return_code = m_publisher->delete_contained_entities();
+        assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
+        FastDDSParticipant::getInstance().deleteTopic(m_topic_name);
     }
     
     bool write(const T& data) noexcept override

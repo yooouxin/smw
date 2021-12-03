@@ -7,19 +7,21 @@
 
 #include "publisher.h"
 #include "result.h"
-#include "service_base.h"
+#include "service_description.h"
+#include "service_registry.h"
+#include <atomic>
 
 namespace smw::core
 {
 using namespace types;
 
-class ServiceSkeleton : public ServiceBase
+class ServiceSkeleton
 {
   public:
     /// @brief ctor of service skeleton
     /// @param service_id service id
     /// @param instance_id instance id
-    ServiceSkeleton(std::uint16_t service_id, std::uint16_t instance_id) noexcept;
+    ServiceSkeleton(const ServiceDescription& service_description) noexcept;
 
     /// @brief dtor of service skeleton
     ~ServiceSkeleton() noexcept;
@@ -49,7 +51,8 @@ class ServiceSkeleton : public ServiceBase
     Result<Publisher<T>> createPublisher(std::uint16_t event_id) noexcept;
 
   private:
-    bool m_is_offered;
+    std::atomic_bool m_is_offered;
+    ServiceDescription m_service_description;
 };
 
 } // namespace smw::core

@@ -50,9 +50,17 @@ class FastDDSReader : public DdsReader<T>
 
     ~FastDDSReader() noexcept
     {
-        m_data_reader->set_listener(nullptr);
+        eprosima::fastrtps::types::ReturnCode_t return_code = eprosima::fastrtps::types::ReturnCode_t::RETCODE_ERROR;
+        return_code = m_data_reader->set_listener(nullptr);
+
+        assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
+
         m_data_reader->close();
-        m_subscriber->delete_contained_entities();
+
+        return_code = m_subscriber->delete_contained_entities();
+        assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
+
+        FastDDSParticipant::getInstance().deleteTopic(m_topic_name);
     }
 
     void setDataCallback(const std::function<void(const T&)>& callback) noexcept override

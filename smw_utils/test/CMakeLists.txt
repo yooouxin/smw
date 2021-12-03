@@ -5,21 +5,16 @@ if (BUILD_TEST AND NOT GTest_FOUND)
 endif (BUILD_TEST AND NOT GTest_FOUND)
 
 
-set(TEST_NAME test_smw_core)
+set(TEST_NAME test_smw_utils)
 
 
 add_executable(${TEST_NAME}
         main.cpp
-        test_runtime.cpp
-        test_publisher.cpp
-        test_subscriber.cpp
-        test_fastdds_data_type_protobuf.cpp
-        test_data.pb.cc
-        test_fastdds_writer_reader.cpp test_service_registry.cpp)
+        test_host_id.cpp)
 
 target_link_libraries(${TEST_NAME}
         PRIVATE
-        smw_core
+        smw_utils
         GTest::gtest
         GTest::gmock
         )
