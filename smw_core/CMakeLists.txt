@@ -18,6 +18,7 @@ target_link_libraries(${LIBRARY_NAME}
         PUBLIC
         fmt::fmt
         smw_types
+        smw_utils
         fastrtps
         ${PROTOBUF_LIBRARIES}
         )

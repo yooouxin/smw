@@ -49,6 +49,37 @@ TEST(service_registry, find)
 }
 
 
+TEST(service_registry, find_callback)
+{
+    ServiceRegistry::getInstance().clearRegistry();
+    ServiceDescription serviceDescription{1, 2};
+    ServiceRegistry::getInstance().offerService(serviceDescription);
+
+    bool service_found = false;
+    ServiceRegistry::getInstance().startFindService(serviceDescription, [&service_found](auto optional_status) {
+        if (optional_status.has_value())
+        {
+            service_found = true;
+        }
+        else
+        {
+            service_found = false;
+        }
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    EXPECT_TRUE(service_found);
+
+    ServiceRegistry::getInstance().stopOfferService(serviceDescription);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_FALSE(service_found);
+
+    ServiceRegistry::getInstance().stopFindService(serviceDescription);
+    ServiceRegistry::getInstance().offerService(serviceDescription);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_FALSE(service_found);
+}
+
 TEST(service_registry, location)
 {
     ServiceRegistry::getInstance().clearRegistry();
