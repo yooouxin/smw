@@ -15,7 +15,7 @@ add_executable(${TEST_NAME}
         test_subscriber.cpp
         test_fastdds_data_type_protobuf.cpp
         test_data.pb.cc
-        test_fastdds_writer_reader.cpp)
+        test_fastdds_writer_reader.cpp test_service_registry.cpp)
 
 target_link_libraries(${TEST_NAME}
         PRIVATE

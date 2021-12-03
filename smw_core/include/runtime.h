@@ -7,6 +7,7 @@
 
 #include "dds/dds_writer.h"
 #include "runtime_option.h"
+
 #include <optional>
 
 namespace smw::core
@@ -36,7 +37,6 @@ class Runtime
     /// @brief return runtime options
     /// @return runtime options
     const RuntimeOption& getOption() const noexcept;
-
 
   private:
     /// @brief Construct of runtime

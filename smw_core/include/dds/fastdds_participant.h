@@ -14,6 +14,7 @@
 
 namespace smw::core
 {
+
 class FastDDSParticipant
 {
   public:
@@ -28,13 +29,17 @@ class FastDDSParticipant
 
     ~FastDDSParticipant() noexcept;
 
+    /// @brief get a Fast-DDS topic
+    /// @tparam T data type of this topic
+    /// @param topic_name
     template <typename T>
     eprosima::fastdds::dds::Topic* getTopic(const std::string& topic_name) noexcept
     {
+        std::unique_lock<std::mutex> lock(m_topics_mutex);
         eprosima::fastdds::dds::Topic* result = nullptr;
         if (m_topics.find(topic_name) != m_topics.end())
         {
-            result = m_topics[topic_name];
+            result = m_topics[topic_name].topic;
         }
         else
         {
@@ -42,17 +47,33 @@ class FastDDSParticipant
             type_support.register_type(m_participant);
             result = FastDDSParticipant::getInstance().getParticipant()->create_topic(
                 topic_name, type_support.get_type_name(), eprosima::fastdds::dds::TOPIC_QOS_DEFAULT);
-            m_topics[topic_name] = result;
+            TopicWithRefCount topic_with_ref_count{result, 0};
+
+            m_topics[topic_name] = topic_with_ref_count;
         }
 
+        m_topics[topic_name].refCount++;
         return result;
     }
 
+    /// @brief delete topic created by getTopic,but not real delete,it depends on reference count
+    /// @param topic_name
+    void deleteTopic(const std::string& topic_name) noexcept;
+    
   private:
     FastDDSParticipant() noexcept;
 
     eprosima::fastdds::dds::DomainParticipant* m_participant;
-    std::map<std::string, eprosima::fastdds::dds::Topic*> m_topics;
+
+    /// @brief wrapper for Fast-DDS topic with reference count
+    struct TopicWithRefCount
+    {
+        eprosima::fastdds::dds::Topic* topic{nullptr};
+        std::int16_t refCount{0};
+    };
+
+    std::map<std::string, TopicWithRefCount> m_topics;
+    std::mutex m_topics_mutex;
 };
 } // namespace smw::core
 #endif // SMW_FASTDDS_PARTICIPANT_H

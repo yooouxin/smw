@@ -15,7 +15,6 @@ Runtime& Runtime::initRuntime(const std::optional<RuntimeOption>& option) noexce
 Runtime::Runtime(const RuntimeOption& option) noexcept
     : m_option(option)
 {
-    /// use a dds m_participant exchange information
 }
 
 
@@ -28,5 +27,6 @@ Runtime& Runtime::getInstance() noexcept
 {
     return initRuntime(std::nullopt);
 }
+
 
 } // namespace smw::core
