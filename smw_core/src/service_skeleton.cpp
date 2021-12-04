@@ -15,7 +15,7 @@ ServiceSkeleton::ServiceSkeleton(const ServiceDescription& service_description) 
 void ServiceSkeleton::offerService() noexcept
 {
     /// notify service registry
-    ServiceRegistry::getInstance().offerService(m_service_description);
+    ServiceRegistry::getInstance().requestDiscoveryOperation(proto::ServiceDiscovery::OFFER, m_service_description);
     m_is_offered.store(true);
 }
 
@@ -33,7 +33,8 @@ Result<Publisher<T>> ServiceSkeleton::createPublisher(std::uint16_t event_id) no
 void ServiceSkeleton::stopOfferService() noexcept
 {
     /// notify service registry
-    ServiceRegistry::getInstance().stopOfferService(m_service_description);
+    ServiceRegistry::getInstance().requestDiscoveryOperation(proto::ServiceDiscovery::STOP_OFFER,
+                                                             m_service_description);
     m_is_offered.store(false);
 }
 

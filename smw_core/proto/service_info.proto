@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-message ServiceInfo {
-    uint32 service_id = 1;
-    uint32 instance_id = 2;
-    bool is_available = 3;
-    string host_id = 4;
-    string process_id = 5;
-}

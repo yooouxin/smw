@@ -8,6 +8,9 @@
 #include <google/protobuf/util/message_differencer.h>
 
 using namespace smw::core;
+using namespace std::chrono_literals;
+static constexpr std::chrono::duration<std::int64_t, std::milli> WAIT_TIME_MS = 10ms;
+
 TEST(fastdds_writer, write)
 {
     FastDDSWriter<SearchRequest> writer("testTopic");
@@ -29,7 +32,7 @@ TEST(fastdds_writer_reader, write_and_read)
     output_data.set_page_number(10);
     output_data.set_query("2");
     EXPECT_TRUE(writer.write(output_data));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(WAIT_TIME_MS);
 
     EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(input_data, output_data));
 }

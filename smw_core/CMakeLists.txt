@@ -11,7 +11,7 @@ add_library(${LIBRARY_NAME}
         src/service_skeleton.cpp
         src/fastdds_participant.cpp
         src/service_registry.cpp
-        proto/service_info.pb.cc
+        proto/service_discovery.pb.cc
         )
 
 target_link_libraries(${LIBRARY_NAME}

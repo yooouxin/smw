@@ -21,7 +21,7 @@ class ServiceSkeleton
     /// @brief ctor of service skeleton
     /// @param service_id service id
     /// @param instance_id instance id
-    ServiceSkeleton(const ServiceDescription& service_description) noexcept;
+    explicit ServiceSkeleton(const ServiceDescription& service_description) noexcept;
 
     /// @brief dtor of service skeleton
     ~ServiceSkeleton() noexcept;

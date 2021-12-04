@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package smw.core.proto;
+
+message ServiceInfo {
+  uint32 service_id = 1;
+  uint32 instance_id = 2;
+  string host_id = 4;
+  string process_id = 5;
+}
+
+message ServiceDiscovery{
+  enum ServiceDiscoveryOperation{
+    OFFER = 0;
+    STOP_OFFER = 1;
+    FIND = 2;
+    STOP_FIND = 3;
+  }
+  ServiceDiscoveryOperation operation = 1;
+  ServiceInfo service_info = 2;
+}
