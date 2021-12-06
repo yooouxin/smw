@@ -6,12 +6,12 @@
 #define SMW_SUBSCRIBER_H
 
 #include "dds/dds_factory.h"
-#include "fmt/core.h"
 #include "iceoryx/iceoryx_reader.h"
 #include "result.h"
 #include "sample_ptr.h"
 #include "serializer_protobuf.h"
 #include "service_registry.h"
+#include "spdlog/spdlog.h"
 #include <vector>
 
 namespace smw::core

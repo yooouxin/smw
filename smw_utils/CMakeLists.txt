@@ -5,13 +5,6 @@ add_library(${LIBRARY_NAME}
         src/host_id.cpp
         )
 
-#target_link_libraries(${LIBRARY_NAME}
-#        PUBLIC
-#        fmt::fmt
-#        smw_types
-#        fastrtps
-#        ${PROTOBUF_LIBRARIES}
-#        )
 
 target_include_directories(${LIBRARY_NAME}
         PUBLIC
