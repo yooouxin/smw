@@ -17,15 +17,16 @@ TEST(fastdds_data_type_protobuf, construct)
     SearchRequest proto_data;
     proto_data.set_page_number(1);
     proto_data.set_query("HHH");
-
     auto proto_size = proto_data.ByteSizeLong();
-    std::vector<std::byte> proto_buffer(proto_size);
 
-    proto_data.SerializePartialToArray(proto_buffer.data(), proto_buffer.size());
+    std::vector<std::byte> proto_buffer(test.getSerializedSizeProvider(&proto_data)());
 
-    eprosima::fastrtps::rtps::SerializedPayload_t payload(proto_size);
+    EXPECT_TRUE(proto_data.SerializePartialToArray(proto_buffer.data(), proto_buffer.size()));
+
+    eprosima::fastrtps::rtps::SerializedPayload_t payload(proto_buffer.size());
     EXPECT_TRUE(test.serialize(&proto_data, &payload));
-    EXPECT_EQ(payload.length, proto_size);
+    /// actual dds payload length has added  4 bytes filed to indicate length of actual data
+    EXPECT_EQ(payload.length, proto_size + 4);
 
     auto* dds_data = test.createData();
     EXPECT_TRUE(test.deserialize(&payload, dds_data));
