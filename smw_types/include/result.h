@@ -242,6 +242,7 @@ class [[nodiscard]] Result<ValueType, ErrorType>
     /// @param value
     Result(Ok<ValueType>&& value) noexcept
         : m_store(std::in_place_index<VALUE_INDEX>, std::move(value.value))
+        , m_has_error(false)
     {
     }
 

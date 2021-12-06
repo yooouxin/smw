@@ -3,6 +3,7 @@
 //
 #include "service_registry.h"
 #include "host_id.h"
+#include "serializer_protobuf.h"
 #include <fmt/format.h>
 
 namespace smw::core
@@ -26,21 +27,41 @@ ServiceRegistry& ServiceRegistry::getInstance() noexcept
 ServiceRegistry::ServiceRegistry() noexcept
     : m_service_discovery_writer(nullptr)
     , m_service_discovery_reader(nullptr)
+    , m_exit(false)
 {
-    m_service_discovery_writer = DDSFactory::createWriter<proto::ServiceDiscovery>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+    m_service_discovery_writer =
+        DDSFactory::createWriter<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_writer != nullptr);
-    m_service_discovery_reader = DDSFactory::createReader<proto::ServiceDiscovery>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+    m_service_discovery_reader =
+        DDSFactory::createReader<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_reader != nullptr);
 
-    auto service_discovery_callback = [this](const proto::ServiceDiscovery& discovery) {
-        updateRegistryFromServiceDiscovery(discovery);
+    auto service_discovery_callback = [this](SamplePtr<const proto::ServiceDiscovery>&& discovery) {
+        updateRegistryFromServiceDiscovery(*discovery);
     };
     m_service_discovery_reader->setDataCallback(service_discovery_callback);
+
+    m_message_write_thread = std::thread([this]() {
+        while (!m_exit)
+        {
+            /// handle "always" message
+            send_always_message();
+            /// handle "some-time" message
+            send_and_remove_some_time_message();
+
+            std::this_thread::sleep_for(DISCOVERY_CYCLE_TIME);
+        }
+    });
 }
 
 ServiceRegistry::~ServiceRegistry() noexcept
 {
     m_service_discovery_reader->setDataCallback(nullptr);
+    m_exit = true;
+    if (m_message_write_thread.joinable())
+    {
+        m_message_write_thread.join(); /// we should wait thread exit? it may spend some time
+    }
 }
 
 
@@ -109,15 +130,19 @@ void ServiceRegistry::updateRegistryFromServiceDiscovery(const proto::ServiceDis
     notifyUserCallback(service_desc, service_status);
 }
 
-void ServiceRegistry::startObserveServiceStatus(const ServiceDescription& service_description,
-                                                const ServiceRegistry::observe_service_callback_t& callback) noexcept
+std::uint32_t
+ServiceRegistry::startObserveServiceStatus(const ServiceDescription& service_description,
+                                           const ServiceRegistry::observe_service_callback_t& callback) noexcept
 {
     std::unique_lock<std::mutex> lock(m_observe_service_callbacks_mutex);
-    m_observe_service_callbacks[service_description] = callback;
+    static std::uint32_t unique_id = 0;
+
+    m_observe_service_callbacks[service_description].emplace_back(ObserveCallbackWithId{callback, unique_id});
     if (m_registry.find(service_description) != m_registry.end() && callback)
     {
         callback(m_registry[service_description]);
     }
+    return unique_id++;
 }
 
 void ServiceRegistry::notifyUserCallback(const ServiceDescription& service_description,
@@ -126,14 +151,35 @@ void ServiceRegistry::notifyUserCallback(const ServiceDescription& service_descr
     std::unique_lock<std::mutex> lock(m_observe_service_callbacks_mutex);
     if (m_observe_service_callbacks.find(service_description) != m_observe_service_callbacks.end())
     {
-        m_observe_service_callbacks[service_description](status);
+        for (auto& callback : m_observe_service_callbacks[service_description])
+        {
+            if (callback.callback)
+            {
+                callback.callback(status);
+            }
+        }
     }
 }
 
-void ServiceRegistry::stopObserveServiceStatus(const ServiceDescription& service_description) noexcept
+void ServiceRegistry::stopObserveServiceStatus(const ServiceDescription& service_description,
+                                               std::uint32_t unique_id) noexcept
 {
     std::unique_lock<std::mutex> lock(m_observe_service_callbacks_mutex);
-    m_observe_service_callbacks.erase(service_description);
+    if (m_observe_service_callbacks.find(service_description) != m_observe_service_callbacks.end())
+    {
+        auto should_deleted_iter = m_observe_service_callbacks[service_description].begin();
+        for (; should_deleted_iter != m_observe_service_callbacks[service_description].end(); should_deleted_iter++)
+        {
+            if (should_deleted_iter->unique_id == unique_id)
+            {
+                break;
+            }
+        }
+        if (should_deleted_iter != m_observe_service_callbacks[service_description].end())
+        {
+            m_observe_service_callbacks[service_description].erase(should_deleted_iter);
+        }
+    }
 }
 
 void ServiceRegistry::fillServiceInfoMessage(const ServiceDescription& description, proto::ServiceInfo* info) noexcept
@@ -151,7 +197,69 @@ void ServiceRegistry::requestDiscoveryOperation(proto::ServiceDiscovery::Service
     discovery_message.set_operation(operation);
     fillServiceInfoMessage(service_description, discovery_message.mutable_service_info());
 
+    /// we write one time here
     assert(m_service_discovery_writer->write(discovery_message));
+
+    /// offer and find need send always,stop offer and stop find need send some time
+    if (operation == proto::ServiceDiscovery::OFFER || operation == proto::ServiceDiscovery::FIND)
+    {
+        /// if there has old message send some time ,remove them
+        std::unique_lock<std::mutex> lock_msgs_some_time(m_message_need_send_some_times_mutex);
+        if (m_message_need_send_some_times.find(service_description) != m_message_need_send_some_times.end())
+        {
+            m_message_need_send_some_times.erase(service_description);
+        }
+        lock_msgs_some_time.unlock();
+
+        std::unique_lock<std::mutex> lock_msgs_always(m_message_need_send_always_mutex);
+        m_message_need_send_always[service_description] = discovery_message;
+    }
+    else
+    {
+        std::unique_lock<std::mutex> lock_msgs_always(m_message_need_send_always_mutex);
+        /// if there has old message send always ,remove them
+        if (m_message_need_send_always.find(service_description) != m_message_need_send_always.end())
+        {
+            m_message_need_send_always.erase(service_description);
+        }
+        lock_msgs_always.unlock();
+
+        std::unique_lock<std::mutex> lock_msgs_some_time(m_message_need_send_some_times_mutex);
+        DiscoveryMessageWithCounter discoveryMessageWithCounter;
+        discoveryMessageWithCounter.discovery_message = discovery_message;
+        discoveryMessageWithCounter.count = 0;
+        m_message_need_send_some_times[service_description] = discoveryMessageWithCounter;
+    }
+}
+void ServiceRegistry::send_and_remove_some_time_message() noexcept
+{
+    std::unique_lock<std::mutex> lock_msgs_some_time(m_message_need_send_some_times_mutex);
+
+    for (auto iter = m_message_need_send_some_times.begin(); iter != m_message_need_send_some_times.end();)
+    {
+        assert(m_service_discovery_writer->write(iter->second.discovery_message));
+        iter->second.count++;
+        if (iter->second.count >= MAX_DISCOVERY_COUNT)
+        {
+            iter = m_message_need_send_some_times.erase(iter);
+        }
+        else
+        {
+            iter++;
+        }
+    }
+}
+void ServiceRegistry::send_always_message() noexcept
+{
+    std::unique_lock<std::mutex> lock_msgs_always(m_message_need_send_always_mutex);
+    for (auto& message : m_message_need_send_always)
+    {
+        if (message.second.operation() == proto::ServiceDiscovery::OFFER)
+        {
+            return;
+        }
+        assert(m_service_discovery_writer->write(message.second));
+    }
 }
 
 void ServiceRegistry::clearRegistry() noexcept

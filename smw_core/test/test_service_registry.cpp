@@ -124,17 +124,17 @@ TEST(service_registry, find_callback)
     ServiceRegistry::getInstance().requestDiscoveryOperation(proto::ServiceDiscovery::OFFER, serviceDescription);
 
     bool service_found = false;
-    ServiceRegistry::getInstance().startObserveServiceStatus(serviceDescription,
-                                                             [&service_found](const ServiceStatus& status) {
-                                                                 if (status.localProviders.size() > 0)
-                                                                 {
-                                                                     service_found = true;
-                                                                 }
-                                                                 else
-                                                                 {
-                                                                     service_found = false;
-                                                                 }
-                                                             });
+    auto observer_id = ServiceRegistry::getInstance().startObserveServiceStatus(
+        serviceDescription, [&service_found](const ServiceStatus& status) {
+            if (status.localProviders.size() > 0)
+            {
+                service_found = true;
+            }
+            else
+            {
+                service_found = false;
+            }
+        });
     std::this_thread::sleep_for(WAIT_TIME_MS);
 
     EXPECT_TRUE(service_found);
@@ -143,7 +143,7 @@ TEST(service_registry, find_callback)
     std::this_thread::sleep_for(WAIT_TIME_MS);
     EXPECT_FALSE(service_found);
 
-    ServiceRegistry::getInstance().stopObserveServiceStatus(serviceDescription);
+    ServiceRegistry::getInstance().stopObserveServiceStatus(serviceDescription, observer_id);
     ServiceRegistry::getInstance().requestDiscoveryOperation(proto::ServiceDiscovery::OFFER, serviceDescription);
     std::this_thread::sleep_for(WAIT_TIME_MS);
     EXPECT_FALSE(service_found);

@@ -5,7 +5,7 @@
 #ifndef SMW_FASTDDS_PARTICIPANT_H
 #define SMW_FASTDDS_PARTICIPANT_H
 
-#include "fastdds_data_type_protobuf.h"
+#include "fastdds_data_type.h"
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
@@ -32,7 +32,7 @@ class FastDDSParticipant
     /// @brief get a Fast-DDS topic
     /// @tparam T data type of this topic
     /// @param topic_name
-    template <typename T>
+    template <typename T, template <typename> typename Serializer>
     eprosima::fastdds::dds::Topic* getTopic(const std::string& topic_name) noexcept
     {
         std::unique_lock<std::mutex> lock(m_topics_mutex);
@@ -43,7 +43,7 @@ class FastDDSParticipant
         }
         else
         {
-            eprosima::fastdds::dds::TypeSupport type_support{new FastDDSDataTypeProtobuf<T>()};
+            eprosima::fastdds::dds::TypeSupport type_support{new FastDDSDataType<T, Serializer>()};
             type_support.register_type(m_participant);
             result = FastDDSParticipant::getInstance().getParticipant()->create_topic(
                 topic_name, type_support.get_type_name(), eprosima::fastdds::dds::TOPIC_QOS_DEFAULT);
@@ -59,7 +59,7 @@ class FastDDSParticipant
     /// @brief delete topic created by getTopic,but not real delete,it depends on reference count
     /// @param topic_name
     void deleteTopic(const std::string& topic_name) noexcept;
-    
+
   private:
     FastDDSParticipant() noexcept;
 

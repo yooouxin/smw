@@ -10,6 +10,7 @@
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
+#include <spdlog/spdlog.h>
 
 namespace smw::core
 {
@@ -18,26 +19,28 @@ class FastDDSReaderListener : public eprosima::fastdds::dds::DataReaderListener
   public:
     inline void on_data_available(eprosima::fastdds::dds::DataReader* reader) noexcept override
     {
-        if (m_void_callback)
+        if (m_notify_callback)
         {
             /// Just notify
-            m_void_callback();
+            m_notify_callback();
         }
     }
 
     inline void setNotifyCallback(const std::function<void()>& callback) noexcept
     {
-        m_void_callback = callback;
+        m_notify_callback = callback;
     }
 
   private:
-    std::function<void()> m_void_callback;
+    std::function<void()> m_notify_callback;
 };
 
-template <typename T>
+template <typename T, template <typename> typename Serializer>
 class FastDDSReader : public DdsReader<T>
 {
   public:
+    using typename DdsReader<T>::data_callback_t;
+
     FastDDSReader(const std::string& topic_name, int32_t queue_size = DEFAULT_QUEUE_SIZE) noexcept
         : m_subscriber(nullptr)
         , m_topic_name(topic_name)
@@ -63,7 +66,7 @@ class FastDDSReader : public DdsReader<T>
         FastDDSParticipant::getInstance().deleteTopic(m_topic_name);
     }
 
-    void setDataCallback(const std::function<void(const T&)>& callback) noexcept override
+    void setDataCallback(const data_callback_t& callback) noexcept override
     {
         std::unique_lock<std::mutex> lock(m_user_callback_mutex);
         m_user_callback = callback;
@@ -76,7 +79,7 @@ class FastDDSReader : public DdsReader<T>
     FastDDSReaderListener m_listener;
     std::string m_topic_name;
     int32_t m_queue_size;
-    std::function<void(const T&)> m_user_callback;
+    data_callback_t m_user_callback;
     std::mutex m_user_callback_mutex;
 
     static constexpr int32_t DEFAULT_QUEUE_SIZE = 10;
@@ -84,17 +87,22 @@ class FastDDSReader : public DdsReader<T>
 
     void onDataAvailable()
     {
-        T dds_data{};
+        SamplePtr<const T> dds_data_ptr = makeSamplePtr<const T>();
         eprosima::fastdds::dds::SampleInfo info;
-        m_data_reader->take_next_sample(&dds_data, &info);
+        eprosima::fastrtps::types::ReturnCode_t return_code =
+            m_data_reader->take_next_sample(const_cast<T*>(dds_data_ptr.get()), &info);
 
-        if (info.valid_data)
+        if (return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK && info.valid_data)
         {
             std::unique_lock<std::mutex> lock(m_user_callback_mutex);
             if (m_user_callback)
             {
-                m_user_callback(dds_data);
+                m_user_callback(std::move(dds_data_ptr));
             }
+        }
+        else
+        {
+            spdlog::error("error");
         }
     }
 
@@ -106,7 +114,7 @@ class FastDDSReader : public DdsReader<T>
 
         assert(m_subscriber != nullptr);
 
-        m_topic = FastDDSParticipant::getInstance().template getTopic<T>(m_topic_name);
+        m_topic = FastDDSParticipant::getInstance().template getTopic<T, Serializer>(m_topic_name);
         assert(m_topic != nullptr);
 
         eprosima::fastdds::dds::DataReaderQos reader_qos = eprosima::fastdds::dds::DATAREADER_QOS_DEFAULT;

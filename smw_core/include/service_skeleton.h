@@ -15,6 +15,12 @@ namespace smw::core
 {
 using namespace types;
 
+enum class ServiceSkeletonError
+{
+    NO_IMPLEMENT = -1,
+    NOT_OFFER_SERVICE = -2
+};
+
 class ServiceSkeleton
 {
   public:
@@ -48,7 +54,16 @@ class ServiceSkeleton
     /// @param event_id id of event
     /// @return created publisher
     template <typename T>
-    Result<Publisher<T>> createPublisher(std::uint16_t event_id) noexcept;
+    Result<std::unique_ptr<Publisher<T>>, ServiceSkeletonError> createPublisher(std::uint16_t event_id) noexcept
+    {
+        if (!isOffered())
+        {
+            return Err(ServiceSkeletonError::NOT_OFFER_SERVICE);
+        }
+
+        return Ok(std::make_unique<Publisher<T>>(
+            m_service_description, event_id));
+    }
 
   private:
     std::atomic_bool m_is_offered;

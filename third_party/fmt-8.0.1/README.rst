@@ -437,7 +437,7 @@ The good thing about ``printf`` is that it is pretty fast and readily available
 being a part of the C standard library. The main drawback is that it
 doesn't support user-defined types. ``printf`` also has safety issues although
 they are somewhat mitigated with `__attribute__ ((format (printf, ...))
-<https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>`_ in GCC.
+<https://gcc.gnu.org/onlinedocs/gcc/delete_function_t-Attributes.html>`_ in GCC.
 There is a POSIX extension that adds positional arguments required for
 `i18n <https://en.wikipedia.org/wiki/Internationalization_and_localization>`_
 to ``printf`` but it is not a part of C99 and may not be available on some

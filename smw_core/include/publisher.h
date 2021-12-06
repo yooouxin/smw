@@ -5,9 +5,13 @@
 #ifndef SMW_PUBLISHER_H
 #define SMW_PUBLISHER_H
 
+#include "dds/dds_factory.h"
 #include "fmt/core.h"
+#include "iceoryx/iceoryx_writer.h"
 #include "result.h"
-#include "sample.h"
+#include "sample_ptr.h"
+#include "serializer_protobuf.h"
+#include "service_registry.h"
 
 namespace smw::core
 {
@@ -15,31 +19,40 @@ using namespace types;
 
 enum class PublisherError
 {
-    NO_IMPLEMENT,
-    LOAN_FAILED,
-    WRITE_FAILED
+    NO_IMPLEMENT = -1,
+    LOAN_FAILED = -2,
+    DDS_WRITE_FAILED = -3,
+    IPC_WRITE_FAILED = -4
 };
+
 /// @brief A general publisher class
 /// @tparam T Data type publisher want transmit
-template <typename T>
+/// @tparam Serializer serializer of data type,must have some functions
+template <typename T, template <typename> typename Serializer = SerializerProtobuf>
 class Publisher
 {
   public:
-    /// @brief topic style publisher
-    /// @param topic_name topic name of publisher
-    Publisher(const std::string& topic_name) noexcept
-        : m_topic_name(topic_name)
-    {
-    }
-
     /// @brief service style publisher,construct a string topic name
     /// @param service_id service id of publisher
     /// @param instance_id instance id of publisher
     /// @param event_id event id of publisher
-    Publisher(std::uint16_t service_id, std::uint16_t instance_id, std::uint16_t event_id) noexcept
-        : Publisher(fmt::format("/{}/{}/{}", service_id, instance_id, event_id))
+    Publisher(const ServiceDescription& service_description, std::uint32_t event_id) noexcept
+        : m_topic_name(
+            fmt::format("/{}/{}/{}", service_description.service_id, service_description.instance_id, event_id))
+        , m_dds_writer(DDSFactory::createWriter<T, Serializer>(m_topic_name))
+        , m_service_description(service_description)
+        , m_iceoryx_writer(std::make_unique<IceoryxWriter<T, Serializer>>(m_service_description, event_id))
     {
     }
+
+    Publisher(const Publisher&) = delete;
+    Publisher& operator=(const Publisher&) = delete;
+
+
+    Publisher(Publisher&&) = delete;
+    Publisher& operator=(Publisher&&) = delete;
+
+    ~Publisher() noexcept = default;
 
     /// @brief return topic name of publisher
     /// @return topic name
@@ -50,17 +63,38 @@ class Publisher
 
     /// @brief loan a sample
     /// @return result of loaned sample
-    Result<Sample<T>, PublisherError> loanSample() noexcept
+    Result<SamplePtr<T>, PublisherError> loanSample() noexcept
     {
-        return Err(PublisherError::NO_IMPLEMENT);
+        SamplePtr<T> result{nullptr};
+        /// loan from iceoryx,maybe loan from shared memory,depends on data type
+        result = m_iceoryx_writer->loan();
+        return Ok(SamplePtr<T>(std::move(result)));
     }
 
     /// @brief publish a loaned sample,used for zero-copy
     /// @param sample sample loaned before
     /// @return publish result
-    Result<PublisherError> publish(Sample<T>&& sample) noexcept
+    Result<PublisherError> publish(SamplePtr<T>&& sample) noexcept
     {
-        return Err(PublisherError::NO_IMPLEMENT);
+        Result<PublisherError> result{Ok()};
+        /// query if exist cross-host subscriber
+        if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasRemoteConsumer())
+        {
+            if (!m_dds_writer->write(*sample))
+            {
+                result = Err(PublisherError::DDS_WRITE_FAILED);
+            }
+        }
+
+        if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasLocalConsumer())
+        {
+            if (!m_iceoryx_writer->write(std::move(sample)))
+            {
+                result = Err(PublisherError::IPC_WRITE_FAILED);
+            }
+        }
+
+        return result;
     }
 
     /// @brief publish a value
@@ -68,11 +102,42 @@ class Publisher
     /// @return publish result
     Result<PublisherError> publish(const T& value) noexcept
     {
-        return Err(PublisherError::NO_IMPLEMENT);
+        Result<PublisherError> result{Ok()};
+        /// query if exist cross-host subscriber
+        if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasRemoteConsumer())
+        {
+            if (!m_dds_writer->write(value))
+            {
+                result = Err(PublisherError::DDS_WRITE_FAILED);
+            }
+        }
+
+        if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasLocalConsumer())
+        {
+            SamplePtr<T> sample = m_iceoryx_writer->loan();
+            if (!sample)
+            {
+                result = Err(PublisherError::LOAN_FAILED);
+            }
+            else
+            {
+                /// copy here
+                *sample = value;
+            }
+
+            if (!result.hasError() && !m_iceoryx_writer->write(std::move(sample)))
+            {
+                result = Err(PublisherError::IPC_WRITE_FAILED);
+            }
+        }
+        return result;
     }
 
   private:
     std::string m_topic_name;
+    ServiceDescription m_service_description;
+    std::unique_ptr<DdsWriter<T>> m_dds_writer;
+    std::unique_ptr<IceoryxWriter<T, Serializer>> m_iceoryx_writer;
 };
 
 } // namespace smw::core

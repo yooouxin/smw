@@ -1733,7 +1733,7 @@
   <https://github.com/fmtlib/dtoa-benchmark>`_:
 
   ==================  =========  =======
-  Function            Time (ns)  Speedup
+  delete_function_t            Time (ns)  Speedup
   ==================  =========  =======
   ostringstream        1,346.30    1.00x
   ostrstream           1,195.74    1.13x

@@ -11,7 +11,7 @@
 #include <fastdds/dds/topic/Topic.hpp>
 namespace smw::core
 {
-template <typename T>
+template <typename T, template <typename> typename Serializer>
 class FastDDSWriter : public DdsWriter<T>
 {
   public:
@@ -32,7 +32,7 @@ class FastDDSWriter : public DdsWriter<T>
         assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
         FastDDSParticipant::getInstance().deleteTopic(m_topic_name);
     }
-    
+
     bool write(const T& data) noexcept override
     {
         return m_data_writer->write(const_cast<T*>(&data));
@@ -54,10 +54,7 @@ class FastDDSWriter : public DdsWriter<T>
 
         assert(m_publisher != nullptr);
 
-        eprosima::fastdds::dds::TypeSupport type_support{new FastDDSDataTypeProtobuf<T>};
-        type_support.register_type(FastDDSParticipant::getInstance().getParticipant());
-
-        m_topic = FastDDSParticipant::getInstance().template getTopic<T>(m_topic_name);
+        m_topic = FastDDSParticipant::getInstance().template getTopic<T, Serializer>(m_topic_name);
         assert(m_topic != nullptr);
 
         eprosima::fastdds::dds::DataWriterQos writer_qos = eprosima::fastdds::dds::DATAWRITER_QOS_DEFAULT;

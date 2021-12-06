@@ -8,7 +8,7 @@ namespace smw::core
 {
 FastDDSParticipant& FastDDSParticipant::getInstance() noexcept
 {
-    static FastDDSParticipant instance;
+    static FastDDSParticipant instance{};
     return instance;
 }
 
@@ -16,6 +16,8 @@ FastDDSParticipant::FastDDSParticipant() noexcept
     : m_participant(nullptr)
 {
     auto* factory = eprosima::fastdds::dds::DomainParticipantFactory::get_instance();
+    eprosima::fastdds::dds::DomainParticipantQos pqos;
+    pqos.name(Runtime::getInstance().getOption().name);
     m_participant = factory->create_participant(Runtime::getInstance().getOption().domain_id,
                                                 eprosima::fastdds::dds::PARTICIPANT_QOS_DEFAULT);
 }

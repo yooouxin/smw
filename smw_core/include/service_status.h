@@ -37,6 +37,30 @@ struct ServiceStatus
     std::set<ServiceEntityInfo> remoteProviders{};
     std::set<ServiceEntityInfo> localConsumers{};
     std::set<ServiceEntityInfo> remoteConsumers{};
+
+    /// @brief a helper to get if there's exist local consumer
+    inline bool hasLocalConsumer() const noexcept
+    {
+        return localConsumers.size() > 0;
+    }
+
+    /// @brief a helper to get if there's exist remote consumer
+    inline bool hasRemoteConsumer() const noexcept
+    {
+        return remoteConsumers.size() > 0;
+    }
+
+    /// @brief a helper to get if there's exist local provider
+    inline bool hasLocalProvider() const noexcept
+    {
+        return localProviders.size() > 0;
+    }
+
+    /// @brief a helper to get if there's exist remote provider
+    inline bool hasRemoteProvider() const noexcept
+    {
+        return remoteProviders.size() > 0;
+    }
 };
 
 } // namespace smw::core

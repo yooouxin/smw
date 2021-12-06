@@ -38,10 +38,10 @@ class ServiceRegistry
 
     using observe_service_callback_t = std::function<void(const ServiceStatus&)>;
 
-    void startObserveServiceStatus(const ServiceDescription& service_description,
-                                   const observe_service_callback_t& callback) noexcept;
+    std::uint32_t startObserveServiceStatus(const ServiceDescription& service_description,
+                                            const observe_service_callback_t& callback) noexcept;
 
-    void stopObserveServiceStatus(const ServiceDescription& service_description) noexcept;
+    void stopObserveServiceStatus(const ServiceDescription& service_description, std::uint32_t unique_id) noexcept;
 
     void clearRegistry() noexcept;
 
@@ -55,15 +55,39 @@ class ServiceRegistry
     service_registry_content_t m_registry;
     std::mutex m_registry_mutex;
 
-    std::map<ServiceDescription, observe_service_callback_t> m_observe_service_callbacks;
+    std::thread m_message_write_thread;
+    bool m_exit;
+
+    struct ObserveCallbackWithId
+    {
+        observe_service_callback_t callback;
+        std::uint32_t unique_id;
+    };
+    std::map<ServiceDescription, std::vector<ObserveCallbackWithId>> m_observe_service_callbacks;
     std::mutex m_observe_service_callbacks_mutex;
 
+    std::map<ServiceDescription, proto::ServiceDiscovery> m_message_need_send_always;
+    std::mutex m_message_need_send_always_mutex;
+
+    struct DiscoveryMessageWithCounter
+    {
+        proto::ServiceDiscovery discovery_message;
+        std::uint16_t count{0};
+    };
+    std::map<ServiceDescription, DiscoveryMessageWithCounter> m_message_need_send_some_times;
+    std::mutex m_message_need_send_some_times_mutex;
+
     static constexpr char BUILTIN_SERVICE_DISCOVERY_TOPIC[] = "/smw/builtin/service_discovery";
+    static constexpr std::uint16_t MAX_DISCOVERY_COUNT = 5;
+    static constexpr std::chrono::duration<std::uint64_t, std::milli> DISCOVERY_CYCLE_TIME = std::chrono::seconds(1);
 
     void updateRegistryFromServiceDiscovery(const proto::ServiceDiscovery& discovery) noexcept;
     void notifyUserCallback(const ServiceDescription& service_description, const ServiceStatus& status) noexcept;
 
     static void fillServiceInfoMessage(const ServiceDescription& description, proto::ServiceInfo* info) noexcept;
+
+    void send_always_message() noexcept;
+    void send_and_remove_some_time_message() noexcept;
 };
 } // namespace smw::core
 #endif // SMW_SERVICE_REGISTRY_H
