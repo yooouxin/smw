@@ -5,9 +5,11 @@
 #ifndef SMW_RUNTIME_H
 #define SMW_RUNTIME_H
 
-#include "dds/dds_writer.h"
 #include "runtime_option.h"
-
+#include "service_proxy.h"
+#include "service_skeleton.h"
+#include "transport/transport_writer.h"
+#include <iceoryx_posh/runtime/posh_runtime.hpp>
 #include <optional>
 
 namespace smw::core
@@ -37,6 +39,11 @@ class Runtime
     /// @brief return runtime options
     /// @return runtime options
     const RuntimeOption& getOption() const noexcept;
+
+    static std::unique_ptr<ServiceSkeleton>
+    createServiceSkeleton(const ServiceDescription& service_description) noexcept;
+
+    static std::unique_ptr<ServiceProxy> createServiceProxy(const ServiceDescription& service_description) noexcept;
 
   private:
     /// @brief Construct of runtime

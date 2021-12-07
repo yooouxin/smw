@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package smw.example.proto;
+
+message HelloWorld{
+  int32 index = 1;
+  string message = 2;
+}

@@ -28,5 +28,14 @@ Runtime& Runtime::getInstance() noexcept
     return initRuntime(std::nullopt);
 }
 
+std::unique_ptr<ServiceSkeleton> Runtime::createServiceSkeleton(const ServiceDescription& service_description) noexcept
+{
+    return std::make_unique<ServiceSkeleton>(service_description);
+}
+std::unique_ptr<ServiceProxy> Runtime::createServiceProxy(const ServiceDescription& service_description) noexcept
+{
+    return std::make_unique<ServiceProxy>(service_description);
+}
+
 
 } // namespace smw::core
