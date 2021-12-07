@@ -12,6 +12,9 @@ Communication on different "Host" will use Fast-DDS,benefit from flexible DDS pr
 
 Maybe I would support SOME/IP protocol for interoperating with AUTOSAR AP...
 
+## Example
+![image](https://github.com/yooouxin/smw/blob/main/doc/publisher_and_subscriber.gif)
+
 ## Dependencies
 
 ### fmt
@@ -30,3 +33,5 @@ https://github.com/eclipse-iceoryx/iceoryx
 
 https://developers.google.com/protocol-buffers
 
+## TODO
+...
