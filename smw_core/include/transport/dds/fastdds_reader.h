@@ -50,18 +50,24 @@ class FastDDSReader : public TransportReader<T>
         , m_topic(nullptr)
         , m_data_reader(nullptr)
         , m_queue_size(queue_size)
+        , m_exit(false)
     {
         init();
     }
 
     ~FastDDSReader() noexcept
     {
-        disable();
+        m_exit.store(true);
+        deleteReader();
         eprosima::fastrtps::types::ReturnCode_t return_code = m_subscriber->delete_contained_entities();
         assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
 
         FastDDSParticipant::getInstance().deleteTopic(m_topic_name);
-        m_dds_operation_async_future.wait(); /// wait all operation finished
+        m_dds_operation_notify.notify_all();
+        if (m_dds_operation_thread.joinable())
+        {
+            m_dds_operation_thread.join();
+        }
     }
 
     void setDataCallback(const data_callback_t& callback) noexcept override
@@ -77,43 +83,30 @@ class FastDDSReader : public TransportReader<T>
         {
             return;
         }
-        auto create_reader_async = [this]() {
-            eprosima::fastdds::dds::DataReaderQos reader_qos = eprosima::fastdds::dds::DATAREADER_QOS_DEFAULT;
-            reader_qos.endpoint().history_memory_policy =
-                eprosima::fastrtps::rtps::MemoryManagementPolicy_t::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
-
-            reader_qos.history().kind = eprosima::fastrtps::KEEP_LAST_HISTORY_QOS;
-            reader_qos.history().depth = m_queue_size;
-
-            std::unique_lock<std::mutex> lock(m_data_reader_mutex);
-            m_data_reader = m_subscriber->create_datareader(
-                m_topic, reader_qos, &m_listener, eprosima::fastdds::dds::StatusMask::data_available());
-            assert(m_data_reader != nullptr);
-        };
-
-        m_dds_operation_async_future = std::async(create_reader_async);
+        auto create_reader_async = [this]() { createReader(); };
+        std::unique_lock<std::mutex> lock_dds_operations(m_dds_operations_mutex);
+        m_dds_operations.template emplace(std::move(create_reader_async));
+        m_dds_operation_notify.notify_all();
     }
 
     void disable() noexcept override
     {
+        std::unique_lock<std::mutex> lock_reader(m_data_reader_mutex);
         if (m_data_reader == nullptr)
         {
             return;
         }
-        
-        std::unique_lock<std::mutex> lock(m_data_reader_mutex);
+
         eprosima::fastrtps::types::ReturnCode_t return_code = m_data_reader->set_listener(nullptr);
 
         assert(return_code == eprosima::fastrtps::types::ReturnCode_t::RETCODE_OK);
 
         m_data_reader->close();
 
-        auto delete_reader_async = [this]() {
-            std::unique_lock<std::mutex> lock(m_data_reader_mutex);
-            m_subscriber->delete_datareader(m_data_reader);
-            m_data_reader = nullptr;
-        };
-        m_dds_operation_async_future = std::async(delete_reader_async);
+        auto delete_reader_async = [this]() { deleteReader(); };
+        std::unique_lock<std::mutex> lock_dds_operations(m_dds_operations_mutex);
+        m_dds_operations.template emplace(std::move(delete_reader_async));
+        m_dds_operation_notify.notify_all();
     }
 
   private:
@@ -126,8 +119,13 @@ class FastDDSReader : public TransportReader<T>
     int32_t m_queue_size;
     data_callback_t m_user_callback;
     std::mutex m_user_callback_mutex;
+    std::atomic_bool m_exit;
 
-    std::future<void> m_dds_operation_async_future;
+    std::queue<std::function<void()>> m_dds_operations;
+    std::mutex m_dds_operations_mutex;
+
+    std::thread m_dds_operation_thread;
+    std::condition_variable m_dds_operation_notify;
 
     static constexpr int32_t DEFAULT_QUEUE_SIZE = 10;
 
@@ -166,7 +164,46 @@ class FastDDSReader : public TransportReader<T>
 
         m_listener.setNotifyCallback([this]() { onDataAvailable(); });
 
-        enable();
+        createReader();
+
+        auto dds_operation = [this]() {
+            while (!m_exit)
+            {
+                std::unique_lock<std::mutex> lock_dds_operations(m_dds_operations_mutex);
+                m_dds_operation_notify.wait(lock_dds_operations);
+                while (!m_dds_operations.empty())
+                {
+                    m_dds_operations.front()();
+                    m_dds_operations.pop();
+                }
+            }
+        };
+        m_dds_operation_thread = std::thread(dds_operation);
+    }
+
+    void createReader() noexcept
+    {
+        eprosima::fastdds::dds::DataReaderQos reader_qos = eprosima::fastdds::dds::DATAREADER_QOS_DEFAULT;
+        reader_qos.endpoint().history_memory_policy =
+            eprosima::fastrtps::rtps::MemoryManagementPolicy_t::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+
+        reader_qos.history().kind = eprosima::fastrtps::KEEP_LAST_HISTORY_QOS;
+        reader_qos.history().depth = m_queue_size;
+
+        std::unique_lock<std::mutex> lock(m_data_reader_mutex);
+        m_data_reader = m_subscriber->create_datareader(
+            m_topic, reader_qos, &m_listener, eprosima::fastdds::dds::StatusMask::data_available());
+        assert(m_data_reader != nullptr);
+    }
+
+    void deleteReader() noexcept
+    {
+        std::unique_lock<std::mutex> lock(m_data_reader_mutex);
+        if (m_data_reader != nullptr)
+        {
+            m_subscriber->delete_datareader(m_data_reader);
+        }
+        m_data_reader = nullptr;
     }
 };
 } // namespace smw::core

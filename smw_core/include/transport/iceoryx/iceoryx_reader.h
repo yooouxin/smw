@@ -32,9 +32,7 @@ class IceoryxReader : public TransportReader<T>
         iox::capro::IdString_t event_id_string{iox::cxx::TruncateToCapacity, std::to_string(event_id)};
         iox::capro::ServiceDescription iox_service_desc{service_id_string, instance_id_string, event_id_string};
 
-        iox::popo::SubscriberOptions options;
-        options.historyRequest = DEFAULT_HISTORY_SIZE;
-        m_iox_subscriber = std::make_unique<iox::popo::UntypedSubscriber>(iox_service_desc, options);
+        m_iox_subscriber = std::make_unique<iox::popo::UntypedSubscriber>(iox_service_desc);
         assert(m_iox_subscriber != nullptr);
         m_iox_listener = std::make_unique<::iox::popo::Listener>();
         assert(m_iox_listener != nullptr);
@@ -77,7 +75,6 @@ class IceoryxReader : public TransportReader<T>
     std::unique_ptr<::iox::popo::Listener> m_iox_listener;
 
     constexpr static bool IS_FIXED_DATA_TYPE = std::is_trivial_v<T>;
-    static constexpr std::size_t DEFAULT_HISTORY_SIZE = 10;
 
     static void onDataAvailable(::iox::popo::UntypedSubscriber*, IceoryxReader* self)
     {

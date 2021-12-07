@@ -26,9 +26,7 @@ class IceoryxWriter : public TransportWriter<T>
         iox::capro::IdString_t event_id_string{iox::cxx::TruncateToCapacity, std::to_string(event_id)};
         iox::capro::ServiceDescription iox_service_desc{service_id_string, instance_id_string, event_id_string};
 
-        iox::popo::PublisherOptions options;
-        options.historyCapacity = DEFAULT_HISTORY_SIZE;
-        m_iox_publisher = std::make_unique<iox::popo::UntypedPublisher>(iox_service_desc, options);
+        m_iox_publisher = std::make_unique<iox::popo::UntypedPublisher>(iox_service_desc);
         assert(m_iox_publisher != nullptr);
     }
 
@@ -116,7 +114,6 @@ class IceoryxWriter : public TransportWriter<T>
     std::unique_ptr<iox::popo::UntypedPublisher> m_iox_publisher;
 
     constexpr static bool IS_FIXED_DATA_TYPE = std::is_trivial_v<T>;
-    static constexpr std::size_t DEFAULT_HISTORY_SIZE = 10;
 };
 } // namespace smw::core
 #endif // SMW_ICEORYX_WRITER_H
