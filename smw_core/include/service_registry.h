@@ -49,8 +49,8 @@ class ServiceRegistry
 
   private:
     ServiceRegistry() noexcept;
-    std::unique_ptr<DdsWriter<proto::ServiceDiscovery>> m_service_discovery_writer;
-    std::unique_ptr<DdsReader<proto::ServiceDiscovery>> m_service_discovery_reader;
+    std::unique_ptr<TransportWriter<proto::ServiceDiscovery>> m_service_discovery_writer;
+    std::unique_ptr<TransportReader<proto::ServiceDiscovery>> m_service_discovery_reader;
 
     service_registry_content_t m_registry;
     std::mutex m_registry_mutex;

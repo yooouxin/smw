@@ -42,13 +42,28 @@ class Subscriber
         , m_queue_size(queue_size)
         , m_service_description(service_description)
         , m_event_id(event_id)
-        , m_dds_reader(nullptr)
-        , m_iceoryx_reader(nullptr)
+        , m_dds_reader(DDSFactory::createReader<T, Serializer>(m_topic_name))
+        , m_iox_reader(std::make_unique<IceoryxReader<T, Serializer>>(m_service_description, m_event_id))
         , m_observer_id{ServiceRegistry::getInstance().startObserveServiceStatus(
-              m_service_description, [this](const ServiceStatus& status) { onServiceStatusChange(status); })}
+              m_service_description, [this](const ServiceStatus& status) { onServiceStatusChanged(status); })}
     {
         /// prefer read local message,if not have local provider,read dds message
         /// so we observe service status to check which transport should use
+        auto onDataAvailable = [this](SamplePtr<const T> sample_ptr) {
+            std::unique_lock<std::mutex> lock(m_user_data_callback_mutex);
+            if (m_user_data_callback)
+            {
+                m_user_data_callback(std::move(sample_ptr));
+            }
+        };
+
+        assert(m_iox_reader);
+        m_iox_reader->disable(); /// we disable it by default,depends on service status change,may enable it
+        m_iox_reader->setDataCallback(onDataAvailable);
+
+        assert(m_dds_reader); /// we disable it by default,depends on service status change,may enable it
+        m_dds_reader->disable();
+        m_dds_reader->setDataCallback(onDataAvailable);
     }
 
     Subscriber(const Subscriber&) = delete;
@@ -60,10 +75,9 @@ class Subscriber
     ~Subscriber() noexcept
     {
         ServiceRegistry::getInstance().stopObserveServiceStatus(m_service_description, m_observer_id);
-
-        if (m_iceoryx_reader)
+        if (m_iox_reader)
         {
-            m_iceoryx_reader->setDataCallback(nullptr);
+            m_iox_reader->setDataCallback(nullptr);
         }
 
         if (m_dds_reader)
@@ -91,8 +105,8 @@ class Subscriber
     ServiceDescription m_service_description;
     std::uint32_t m_event_id;
 
-    std::unique_ptr<DdsReader<T>> m_dds_reader;
-    std::unique_ptr<IceoryxReader<T, Serializer>> m_iceoryx_reader;
+    std::unique_ptr<TransportReader<T>> m_dds_reader;
+    std::unique_ptr<IceoryxReader<T, Serializer>> m_iox_reader;
 
     std::uint32_t m_observer_id;
 
@@ -101,46 +115,19 @@ class Subscriber
 
     static constexpr std::size_t DEFAULT_QUEUE_SIZE = 10;
 
-    void onServiceStatusChange(const ServiceStatus& status)
+    void onServiceStatusChanged(const ServiceStatus& status)
     {
-        auto onDataAvailable = [this](SamplePtr<const T> sample_ptr) {
-            std::unique_lock<std::mutex> lock(m_user_data_callback_mutex);
-            if (m_user_data_callback)
-            {
-                m_user_data_callback(std::move(sample_ptr));
-            }
-        };
-
         /// prefer read local message,if not have local provider,read dds message
         if (status.hasLocalProvider())
         {
-            if (m_iceoryx_reader == nullptr)
-            {
-                m_iceoryx_reader = std::make_unique<IceoryxReader<T, Serializer>>(m_service_description, m_event_id);
-                assert(m_iceoryx_reader);
-
-                m_iceoryx_reader->setDataCallback(onDataAvailable);
-            }
+            m_dds_reader->disable();
+            m_iox_reader->enable();
         }
-        else
+        else if (status.hasRemoteProvider())
         {
-            /// we don't need iceoryx reader if no local provider
-            m_iceoryx_reader.reset();
-
-            /// check
-            if (status.hasRemoteProvider())
-            {
-                if (m_dds_reader == nullptr)
-                {
-                    m_dds_reader = DDSFactory::createReader<T, Serializer>(m_topic_name);
-
-                    m_dds_reader->setDataCallback(onDataAvailable);
-                }
-            }
-            else
-            {
-                m_dds_reader.reset();
-            }
+            /// we don't need iox reader if no local provider
+            m_iox_reader->disable();
+            m_dds_reader->enable();
         }
     }
 };

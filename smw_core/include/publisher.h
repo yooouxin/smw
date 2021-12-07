@@ -41,7 +41,7 @@ class Publisher
             fmt::format("/{}/{}/{}", service_description.service_id, service_description.instance_id, event_id))
         , m_dds_writer(DDSFactory::createWriter<T, Serializer>(m_topic_name))
         , m_service_description(service_description)
-        , m_iceoryx_writer(std::make_unique<IceoryxWriter<T, Serializer>>(m_service_description, event_id))
+        , m_iox_writer(std::make_unique<IceoryxWriter<T, Serializer>>(m_service_description, event_id))
     {
     }
 
@@ -66,8 +66,8 @@ class Publisher
     Result<SamplePtr<T>, PublisherError> loanSample() noexcept
     {
         SamplePtr<T> result{nullptr};
-        /// loan from iceoryx,maybe loan from shared memory,depends on data type
-        result = m_iceoryx_writer->loan();
+        /// TODO magic loan from iceoryx,maybe loan from shared memory,depends on data type
+        result = m_iox_writer->loan();
         return Ok(SamplePtr<T>(std::move(result)));
     }
 
@@ -88,7 +88,7 @@ class Publisher
 
         if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasLocalConsumer())
         {
-            if (!m_iceoryx_writer->write(std::move(sample)))
+            if (!m_iox_writer->write(std::move(sample)))
             {
                 result = Err(PublisherError::IPC_WRITE_FAILED);
             }
@@ -114,7 +114,7 @@ class Publisher
 
         if (ServiceRegistry::getInstance().queryServiceStatus(m_service_description).hasLocalConsumer())
         {
-            SamplePtr<T> sample = m_iceoryx_writer->loan();
+            SamplePtr<T> sample = m_iox_writer->loan();
             if (!sample)
             {
                 result = Err(PublisherError::LOAN_FAILED);
@@ -125,7 +125,7 @@ class Publisher
                 *sample = value;
             }
 
-            if (!result.hasError() && !m_iceoryx_writer->write(std::move(sample)))
+            if (!result.hasError() && !m_iox_writer->write(std::move(sample)))
             {
                 result = Err(PublisherError::IPC_WRITE_FAILED);
             }
@@ -136,8 +136,8 @@ class Publisher
   private:
     std::string m_topic_name;
     ServiceDescription m_service_description;
-    std::unique_ptr<DdsWriter<T>> m_dds_writer;
-    std::unique_ptr<IceoryxWriter<T, Serializer>> m_iceoryx_writer;
+    std::unique_ptr<TransportWriter<T>> m_dds_writer;
+    std::unique_ptr<TransportWriter<T>> m_iox_writer;
 };
 
 } // namespace smw::core

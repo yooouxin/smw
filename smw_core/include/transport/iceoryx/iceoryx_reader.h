@@ -7,6 +7,7 @@
 #include "iceoryx_runtime.h"
 #include "sample_ptr.h"
 #include "service_description.h"
+#include "transport_reader.h"
 #include <iceoryx_posh/popo/listener.hpp>
 #include <iceoryx_posh/popo/untyped_subscriber.hpp>
 
@@ -14,7 +15,7 @@ namespace smw::core
 {
 
 template <typename T, template <typename> typename Serializer>
-class IceoryxReader
+class IceoryxReader : public TransportReader<T>
 {
   public:
     using data_callback_t = std::function<void(SamplePtr<const T>)>;
@@ -31,7 +32,9 @@ class IceoryxReader
         iox::capro::IdString_t event_id_string{iox::cxx::TruncateToCapacity, std::to_string(event_id)};
         iox::capro::ServiceDescription iox_service_desc{service_id_string, instance_id_string, event_id_string};
 
-        m_iox_subscriber = std::make_unique<iox::popo::UntypedSubscriber>(iox_service_desc);
+        iox::popo::SubscriberOptions options;
+        options.historyRequest = DEFAULT_HISTORY_SIZE;
+        m_iox_subscriber = std::make_unique<iox::popo::UntypedSubscriber>(iox_service_desc, options);
         assert(m_iox_subscriber != nullptr);
         m_iox_listener = std::make_unique<::iox::popo::Listener>();
         assert(m_iox_listener != nullptr);
@@ -48,12 +51,23 @@ class IceoryxReader
     ~IceoryxReader() noexcept
     {
         m_iox_listener->template detachEvent(*m_iox_subscriber, iox::popo::SubscriberEvent::DATA_RECEIVED);
+        disable();
     }
 
     void setDataCallback(const data_callback_t& callback) noexcept
     {
         std::unique_lock<std::mutex> lock(m_user_callback_mutex);
         m_user_callback = callback;
+    }
+
+    void enable() noexcept override
+    {
+        m_iox_subscriber->subscribe();
+    }
+
+    void disable() noexcept override
+    {
+        m_iox_subscriber->unsubscribe();
     }
 
   private:
@@ -63,6 +77,7 @@ class IceoryxReader
     std::unique_ptr<::iox::popo::Listener> m_iox_listener;
 
     constexpr static bool IS_FIXED_DATA_TYPE = std::is_trivial_v<T>;
+    static constexpr std::size_t DEFAULT_HISTORY_SIZE = 10;
 
     static void onDataAvailable(::iox::popo::UntypedSubscriber*, IceoryxReader* self)
     {

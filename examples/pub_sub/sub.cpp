@@ -23,8 +23,10 @@ void signalHandler(int signum)
 
 int main()
 {
+    eprosima::fastdds::dds::Log::SetVerbosity(eprosima::fastdds::dds::Log::Kind::Error);
     signal(SIGINT, signalHandler);
-
+    signal(SIGTERM, signalHandler);
+    
     RuntimeOption option{"smw_example_sub"};
     auto& runtime = Runtime::initRuntime(option);
     ServiceDescription serviceDescription;
@@ -35,9 +37,8 @@ int main()
     auto service_proxy = runtime.getInstance().createServiceProxy(serviceDescription);
 
     std::unique_ptr<Subscriber<HelloWorld>> subscriber{nullptr};
-    service_proxy->createSubscriber<HelloWorld>(TEST_EVENT)
-        .andThen([&subscriber](auto& created_subscriber) { subscriber = std::move(created_subscriber); })
-        .orElse([](auto& error) { return error; });
+    subscriber = std::move(
+        service_proxy->createSubscriber<HelloWorld>(TEST_EVENT).orElse([](auto& error) { return error; }).getValue());
 
     assert(subscriber);
 

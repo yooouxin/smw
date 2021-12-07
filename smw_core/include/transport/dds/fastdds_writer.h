@@ -4,15 +4,15 @@
 
 #ifndef SMW_FASTDDS_WRITER_H
 #define SMW_FASTDDS_WRITER_H
-#include "dds_writer.h"
 #include "fastdds_participant.h"
+#include "transport/transport_writer.h"
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
 namespace smw::core
 {
 template <typename T, template <typename> typename Serializer>
-class FastDDSWriter : public DdsWriter<T>
+class FastDDSWriter : public TransportWriter<T>
 {
   public:
     FastDDSWriter(const std::string& topic_name) noexcept
@@ -36,6 +36,28 @@ class FastDDSWriter : public DdsWriter<T>
     bool write(const T& data) noexcept override
     {
         return m_data_writer->write(const_cast<T*>(&data));
+    }
+
+    bool write(SamplePtr<T>&& data) noexcept override
+    {
+        return write(*data);
+    }
+
+    SamplePtr<T> loan() noexcept override
+    {
+        void* user_payload;
+        m_data_writer->loan_sample(user_payload);
+        return SamplePtr<T>(new (user_payload) T{});
+    }
+
+    void enable() noexcept override
+    {
+        m_data_writer->enable();
+    }
+
+    void disable() noexcept override
+    {
+        m_data_writer->close();
     }
 
   private:

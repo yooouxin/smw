@@ -43,7 +43,7 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
         bool result = Serializer<T>::serialize(
             data, payload->data + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE, &serialized_len);
 
-        payload->length = getSerializedSizeProvider(data)() - CDR_ENCAPSULATION_SIZE;
+        payload->length = ser.getSerializedDataLength() + static_cast<uint32_t>(Serializer<T>::getSize(data));
         return result;
     }
 

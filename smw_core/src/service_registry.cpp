@@ -4,7 +4,7 @@
 #include "service_registry.h"
 #include "host_id.h"
 #include "serializer_protobuf.h"
-#include <fmt/format.h>
+#include "spdlog/spdlog.h"
 
 namespace smw::core
 {
@@ -254,10 +254,6 @@ void ServiceRegistry::send_always_message() noexcept
     std::unique_lock<std::mutex> lock_msgs_always(m_message_need_send_always_mutex);
     for (auto& message : m_message_need_send_always)
     {
-        if (message.second.operation() == proto::ServiceDiscovery::OFFER)
-        {
-            return;
-        }
         assert(m_service_discovery_writer->write(message.second));
     }
 }

@@ -4,6 +4,7 @@
 #include "hello_wrold.pb.h"
 #include "runtime.h"
 #include <csignal>
+#include <fastrtps/log/Log.h>
 
 using namespace smw::core;
 using namespace smw::example::proto;
@@ -23,8 +24,10 @@ void signalHandler(int signum)
 
 int main()
 {
+    eprosima::fastdds::dds::Log::SetVerbosity(eprosima::fastdds::dds::Log::Kind::Error);
     signal(SIGINT, signalHandler);
-
+    signal(SIGTERM, signalHandler);
+    
     RuntimeOption option{"smw_example_pub"};
     auto& runtime = Runtime::initRuntime(option);
     ServiceDescription serviceDescription;
@@ -34,9 +37,8 @@ int main()
     auto service_skeleton = runtime.getInstance().createServiceSkeleton(serviceDescription);
 
     std::unique_ptr<Publisher<HelloWorld>> publisher{nullptr};
-    service_skeleton->createPublisher<HelloWorld>(TEST_EVENT)
-        .andThen([&publisher](auto& created_publisher) { publisher = std::move(created_publisher); })
-        .orElse([](auto& error) { return error; });
+    publisher = std::move(
+        service_skeleton->createPublisher<HelloWorld>(TEST_EVENT).orElse([](auto& error) { return error; }).getValue());
 
     assert(publisher);
 
