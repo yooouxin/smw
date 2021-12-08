@@ -19,22 +19,22 @@ class SerializerProtobuf
     static_assert(std::is_base_of_v<google::protobuf::Message, T>);
 
   public:
-    static std::size_t getMaxSize() noexcept
+    std::size_t getMaxSize() noexcept
     {
         return PB_DEFAULT_MAX_SIZE; /// just a sample
     }
 
-    static std::string getTypeName() noexcept
+    std::string getTypeName() noexcept
     {
         return T().GetTypeName();
     }
 
-    static std::size_t getSize(const void* data) noexcept
+    std::size_t getSize(const void* data) noexcept
     {
         return static_cast<std::size_t>((reinterpret_cast<const T*>(data))->ByteSizeLong());
     }
 
-    static bool serialize(const void* from_data, void* dest_buffer, std::size_t* dest_len) noexcept
+    bool serialize(const void* from_data, void* dest_buffer, std::size_t* dest_len) noexcept
     {
         *dest_len = getSize(from_data);
 
@@ -43,25 +43,25 @@ class SerializerProtobuf
         return result;
     }
 
-    static bool deserialize(const void* from_buffer, std::size_t from_len, void* dest_data) noexcept
+    bool deserialize(const void* from_buffer, std::size_t from_len, void* dest_data) noexcept
     {
         bool result = reinterpret_cast<T*>(dest_data)->ParseFromArray(from_buffer, from_len);
 
         return result;
     }
 
-    static void* createData() noexcept
+    void* createData() noexcept
     {
         return reinterpret_cast<void*>(new T());
     }
 
-    static void deleteData(void* data) noexcept
+    void deleteData(void* data) noexcept
     {
         delete (reinterpret_cast<T*>(data));
     }
 
   private:
-    static constexpr std::size_t PB_DEFAULT_MAX_SIZE = 256;
+    constexpr static std::size_t PB_DEFAULT_MAX_SIZE = 256;
 };
 } // namespace smw::core
 #endif // SMW_SERIALIZER_PROTOBUF_H

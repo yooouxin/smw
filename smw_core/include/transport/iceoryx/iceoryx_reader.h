@@ -94,7 +94,7 @@ class IceoryxReader : public TransportReader<T>
                         delete ptr;
                     });
 
-                    Serializer::deserialize(user_payload, payloadSize, const_cast<T*>(sample_ptr.get()));
+                    m_serializer.deserialize(user_payload, payloadSize, const_cast<T*>(sample_ptr.get()));
                 }
                 else
                 { // Just convert userPayload to data type pointer and pass to user
@@ -111,6 +111,9 @@ class IceoryxReader : public TransportReader<T>
                 (void)error;
             });
     }
+
+  private:
+    static inline Serializer m_serializer;
 };
 
 } // namespace smw::core

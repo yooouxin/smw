@@ -14,59 +14,56 @@ class SerializerIdl
     static_assert(std::is_base_of_v<eprosima::fastdds::dds::TopicDataType, PubSubType>);
 
   public:
-    static PubSubType& getDelegateType() noexcept
+    std::size_t getMaxSize() noexcept
     {
-        static PubSubType delegate;
-        return delegate;
+        return m_delegate.m_typeSize;
     }
 
-    static std::size_t getMaxSize() noexcept
+    std::string getTypeName() noexcept
     {
-        return getDelegateType().m_typeSize;
+        return m_delegate.getName();
     }
 
-    static std::string getTypeName() noexcept
+    std::size_t getSize(const void* data) noexcept
     {
-        return getDelegateType().getName();
+        return m_delegate.getSerializedSizeProvider(const_cast<void*>(data))();
     }
 
-    static std::size_t getSize(const void* data) noexcept
-    {
-        return getDelegateType().getSerializedSizeProvider(const_cast<void*>(data))();
-    }
-
-    static bool serialize(const void* from_data, void* dest_buffer, std::size_t* dest_len) noexcept
+    bool serialize(const void* from_data, void* dest_buffer, std::size_t* dest_len) noexcept
     {
         /// IMPROVE : more copy here
         eprosima::fastrtps::rtps::SerializedPayload_t payload{static_cast<uint32_t>(getMaxSize())};
 
-        bool result = getDelegateType().serialize(const_cast<void*>(from_data), &payload);
+        bool result = m_delegate.serialize(const_cast<void*>(from_data), &payload);
         std::memcpy(dest_buffer, payload.data, payload.length);
         *dest_len = payload.length;
         return result;
     }
 
-    static bool deserialize(const void* from_buffer, std::size_t from_len, void* dest_data) noexcept
+    bool deserialize(const void* from_buffer, std::size_t from_len, void* dest_data) noexcept
     {
         /// IMPROVE : more copy here
         eprosima::fastrtps::rtps::SerializedPayload_t payload{static_cast<uint32_t>(from_len)};
         payload.length = from_len;
         std::memcpy(payload.data, from_buffer, from_len);
 
-        bool result = getDelegateType().deserialize(&payload, dest_data);
+        bool result = m_delegate.deserialize(&payload, dest_data);
 
         return result;
     }
 
-    static void* createData() noexcept
+    void* createData() noexcept
     {
-        return getDelegateType().createData();
+        return m_delegate.createData();
     }
 
-    static void deleteData(void* data) noexcept
+    void deleteData(void* data) noexcept
     {
-        getDelegateType().deleteData(data);
+        m_delegate.deleteData(data);
     }
+
+  private:
+    inline static PubSubType m_delegate;
 };
 } // namespace smw::core
 #endif // SMW_SERIALIZER_IDL_H

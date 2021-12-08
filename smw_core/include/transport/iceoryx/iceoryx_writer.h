@@ -63,7 +63,7 @@ class IceoryxWriter : public TransportWriter<T>
         // dynamic types --> allocate buffer from shared memory and publish by iceoryx
         if constexpr (!IS_FIXED_DATA_TYPE)
         {
-            std::size_t data_size = Serializer::getSize(data.get());
+            std::size_t data_size = m_serializer.getSize(data.get());
             void* user_payload = nullptr;
 
             m_iox_publisher->loan(data_size)
@@ -78,7 +78,7 @@ class IceoryxWriter : public TransportWriter<T>
 
             std::size_t serialized_len = 0;
             /// serialize to loaned memory
-            Serializer::serialize(data.get(), user_payload, &serialized_len);
+            m_serializer.serialize(data.get(), user_payload, &serialized_len);
             assert(serialized_len == data_size);
 
             m_iox_publisher->publish(user_payload);
@@ -112,7 +112,7 @@ class IceoryxWriter : public TransportWriter<T>
 
   private:
     std::unique_ptr<iox::popo::UntypedPublisher> m_iox_publisher;
-
+    static inline Serializer m_serializer;
     constexpr static bool IS_FIXED_DATA_TYPE = std::is_trivial_v<T>;
 };
 } // namespace smw::core
