@@ -161,6 +161,7 @@ class FastDDSReader : public TransportReader<T>
 
     void onDataAvailable()
     {
+        spdlog::debug("FastDDSReader::onDataAvailable");
         SamplePtr<const T> dds_data_ptr = makeSamplePtr<const T>();
         eprosima::fastdds::dds::SampleInfo info;
         eprosima::fastrtps::types::ReturnCode_t return_code =
@@ -178,7 +179,7 @@ class FastDDSReader : public TransportReader<T>
         }
         else
         {
-            spdlog::error("error");
+            spdlog::error("FastDDSReader::onDataAvailable take samples error");
         }
     }
 
