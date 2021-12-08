@@ -74,15 +74,18 @@ class Subscriber
 
     ~Subscriber() noexcept
     {
+        spdlog::debug("~Subscriber : {}", m_topic_name);
         ServiceRegistry::getInstance().stopObserveServiceStatus(m_service_description, m_observer_id);
         if (m_iox_reader)
         {
             m_iox_reader->setDataCallback(nullptr);
+            m_iox_reader->disable();
         }
 
         if (m_dds_reader)
         {
             m_dds_reader->setDataCallback(nullptr);
+            m_dds_reader->disable();
         }
     }
     /// @brief return topic name of publisher

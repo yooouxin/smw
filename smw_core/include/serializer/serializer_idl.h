@@ -31,7 +31,7 @@ class SerializerIdl
 
     bool serialize(const void* from_data, void* dest_buffer, std::size_t* dest_len) noexcept
     {
-        /// IMPROVE : more copy here
+        /// IMPROVE : too much copy here
         eprosima::fastrtps::rtps::SerializedPayload_t payload{static_cast<uint32_t>(getMaxSize())};
 
         bool result = m_delegate.serialize(const_cast<void*>(from_data), &payload);
@@ -42,7 +42,7 @@ class SerializerIdl
 
     bool deserialize(const void* from_buffer, std::size_t from_len, void* dest_data) noexcept
     {
-        /// IMPROVE : more copy here
+        /// IMPROVE : too much copy here
         eprosima::fastrtps::rtps::SerializedPayload_t payload{static_cast<uint32_t>(from_len)};
         payload.length = from_len;
         std::memcpy(payload.data, from_buffer, from_len);

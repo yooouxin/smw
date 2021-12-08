@@ -25,6 +25,7 @@ void signalHandler(int signum)
 int main()
 {
     eprosima::fastdds::dds::Log::SetVerbosity(eprosima::fastdds::dds::Log::Kind::Error);
+    spdlog::set_level(spdlog::level::level_enum::err);
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
 
