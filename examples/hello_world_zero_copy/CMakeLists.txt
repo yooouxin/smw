@@ -2,7 +2,7 @@
 
 set(EXAMPLE_NAME smw_example_hello_world_zero_copy)
 
-add_executable(${EXAMPLE_NAME}_pub pub.cpp serializer_hello_world.cpp)
+add_executable(${EXAMPLE_NAME}_pub pub.cpp)
 
 target_link_libraries(${EXAMPLE_NAME}_pub
         PRIVATE
@@ -15,7 +15,7 @@ set_target_properties(${EXAMPLE_NAME}_pub PROPERTIES
         POSITION_INDEPENDENT_CODE ON
         )
 
-add_executable(${EXAMPLE_NAME}_sub sub.cpp serializer_hello_world.cpp)
+add_executable(${EXAMPLE_NAME}_sub sub.cpp)
 
 target_link_libraries(${EXAMPLE_NAME}_sub
         PRIVATE
