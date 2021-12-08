@@ -18,6 +18,18 @@ FastDDSParticipant::FastDDSParticipant() noexcept
     auto* factory = eprosima::fastdds::dds::DomainParticipantFactory::get_instance();
     eprosima::fastdds::dds::DomainParticipantQos pqos;
     pqos.name(Runtime::getInstance().getOption().name);
+    /// use udp as default transport
+    auto udp_transport = std::make_shared<eprosima::fastrtps::rtps::UDPv4TransportDescriptor>();
+    udp_transport->sendBufferSize = DEFAULT_UDP_BUFFER_SIZE;
+    udp_transport->receiveBufferSize = DEFAULT_UDP_BUFFER_SIZE;
+    udp_transport->non_blocking_send = true;
+
+    // Link the Transport Layer to the Participant.
+    pqos.transport().user_transports.push_back(udp_transport);
+
+    // Avoid using the default transport
+    pqos.transport().use_builtin_transports = false;
+
     m_participant = factory->create_participant(Runtime::getInstance().getOption().domain_id,
                                                 eprosima::fastdds::dds::PARTICIPANT_QOS_DEFAULT);
 }

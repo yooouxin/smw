@@ -11,7 +11,7 @@
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
-
+#include <fastrtps/transport/UDPv4TransportDescriptor.h>
 namespace smw::core
 {
 
@@ -74,6 +74,7 @@ class FastDDSParticipant
 
     std::map<std::string, TopicWithRefCount> m_topics;
     std::mutex m_topics_mutex;
+    static constexpr std::uint32_t DEFAULT_UDP_BUFFER_SIZE = 8 * 1024 * 1024;
 };
 } // namespace smw::core
 #endif // SMW_FASTDDS_PARTICIPANT_H

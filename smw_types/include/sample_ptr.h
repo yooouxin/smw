@@ -96,9 +96,14 @@ class SamplePtr
     }
 
     /* void unique_ptr::reset(std::nullptr_t) noexcept; */
-    void reset(std::nullptr_t)
+    void reset(std::nullptr_t) noexcept
     {
         m_data_ptr.reset();
+    }
+
+    T* release() noexcept
+    {
+        return m_data_ptr.release();
     }
 
     /* explicit unique_ptr::operator bool() const noexcept; */

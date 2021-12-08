@@ -2,3 +2,4 @@
 
 add_subdirectory(hello_world_proto)
 add_subdirectory(hello_world_idl)
+add_subdirectory(hello_world_zero_copy)
