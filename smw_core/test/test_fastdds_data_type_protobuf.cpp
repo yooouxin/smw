@@ -2,7 +2,7 @@
 // Created by youxinxin on 2021/12/2.
 //
 #include "dds/fastdds_data_type.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "test.h"
 #include "test_data.pb.h"
 #include <google/protobuf/util/message_differencer.h>
@@ -11,7 +11,7 @@ using namespace smw::core;
 
 TEST(fastdds_data_type_protobuf, construct)
 {
-    FastDDSDataType<SearchRequest, SerializerProtobuf> test;
+    FastDDSDataType<SearchRequest, SerializerProtobuf<SearchRequest>> test;
     EXPECT_EQ(test.getName(), SearchRequest().GetTypeName());
 
     SearchRequest proto_data;

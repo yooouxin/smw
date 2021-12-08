@@ -34,6 +34,6 @@
 # IDE configuarions
 /.idea/
 /.vscode/
-/cmake-build-debug/
+/cmake-build-*/
 /build/
 /install/

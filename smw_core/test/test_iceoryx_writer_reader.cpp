@@ -3,7 +3,7 @@
 //
 #include "iceoryx/iceoryx_reader.h"
 #include "iceoryx/iceoryx_writer.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "test.h"
 #include "test_data.pb.h"
 #include <google/protobuf/util/message_differencer.h>
@@ -23,8 +23,8 @@ TEST(iceoryx_test, write_and_read)
     serviceDescription.service_id = TEST_SERVICE;
     serviceDescription.instance_id = TEST_INSTANCE;
 
-    IceoryxWriter<SearchRequest, SerializerProtobuf> writer(serviceDescription, TEST_EVENT);
-    IceoryxReader<SearchRequest, SerializerProtobuf> reader(serviceDescription, TEST_EVENT);
+    IceoryxWriter<SearchRequest, SerializerProtobuf<SearchRequest>> writer(serviceDescription, TEST_EVENT);
+    IceoryxReader<SearchRequest, SerializerProtobuf<SearchRequest>> reader(serviceDescription, TEST_EVENT);
 
     SearchRequest input_data;
     reader.setDataCallback([&input_data](auto&& value) { input_data = *value; });

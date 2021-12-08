@@ -4,6 +4,7 @@
 #include "hello_wrold.pb.h"
 #include "runtime.h"
 #include <csignal>
+#include <fastrtps/log/Log.h>
 
 using namespace smw::core;
 using namespace smw::example::proto;
@@ -24,31 +25,36 @@ void signalHandler(int signum)
 int main()
 {
     eprosima::fastdds::dds::Log::SetVerbosity(eprosima::fastdds::dds::Log::Kind::Error);
+    spdlog::set_level(spdlog::level::level_enum::err);
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    
-    RuntimeOption option{"smw_example_sub"};
+
+    RuntimeOption option{"smw_example_hello_world_pub"};
     auto& runtime = Runtime::initRuntime(option);
     ServiceDescription serviceDescription;
     serviceDescription.service_id = TEST_SERVICE;
     serviceDescription.instance_id = TEST_INSTANCE;
 
+    auto service_skeleton = runtime.getInstance().createServiceSkeleton(serviceDescription);
 
-    auto service_proxy = runtime.getInstance().createServiceProxy(serviceDescription);
+    std::unique_ptr<Publisher<HelloWorld>> publisher{nullptr};
+    publisher = std::move(
+        service_skeleton->createPublisher<HelloWorld>(TEST_EVENT).orElse([](auto& error) { return error; }).getValue());
 
-    std::unique_ptr<Subscriber<HelloWorld>> subscriber{nullptr};
-    subscriber = std::move(
-        service_proxy->createSubscriber<HelloWorld>(TEST_EVENT).orElse([](auto& error) { return error; }).getValue());
+    assert(publisher);
 
-    assert(subscriber);
-
-    /// print debug string received
-    subscriber->registerReceiveHandler([](auto sample_ptr) { std::cout << sample_ptr->DebugString() << std::endl; });
-
+    HelloWorld message;
+    int32_t index = 0;
     while (!exit_request)
     {
+        message.set_index(index++);
+        message.set_message("Hello");
+        publisher->publish(message).orElse(
+            [](auto& error) { std::cout << static_cast<std::int32_t>(error) << std::endl; });
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(1s);
     }
+
+
     return 0;
 }

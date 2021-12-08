@@ -10,16 +10,16 @@
 
 namespace smw::core
 {
-template <typename T, template <typename> typename Serializer>
+template <typename T, typename Serializer>
 class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
 {
   public:
     FastDDSDataType() noexcept
     {
-        std::string type_name = Serializer<T>::getTypeName();
+        std::string type_name = m_serializer.getTypeName();
         setName(type_name.c_str());
 
-        m_typeSize = Serializer<T>::getMaxSize() + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE;
+        m_typeSize = m_serializer.getMaxSize() + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE;
         m_isGetKeyDefined = false;
     }
 
@@ -37,13 +37,13 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
         ser.serialize_encapsulation();
 
         /// first serialize vector size
-        ser << static_cast<uint32_t>(Serializer<T>::getSize(data));
+        ser << static_cast<uint32_t>(m_serializer.getSize(data));
 
         /// then serialize actual size
-        bool result = Serializer<T>::serialize(
-            data, payload->data + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE, &serialized_len);
+        bool result =
+            m_serializer.serialize(data, payload->data + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE, &serialized_len);
 
-        payload->length = ser.getSerializedDataLength() + static_cast<uint32_t>(Serializer<T>::getSize(data));
+        payload->length = ser.getSerializedDataLength() + static_cast<uint32_t>(m_serializer.getSize(data));
         return result;
     }
 
@@ -65,7 +65,7 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
         /// first de-serialize vector size
         de_ser >> actual_size;
 
-        return Serializer<T>::deserialize(
+        return m_serializer.deserialize(
             payload->data + CDR_VECTOR_LEN_SIZE + CDR_ENCAPSULATION_SIZE, actual_size, data);
     }
 
@@ -76,7 +76,7 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
     {
         return [data]() -> uint32_t {
             uint32_t current_alignment = 0;
-            current_alignment += static_cast<uint32_t>(Serializer<T>::getSize(data))
+            current_alignment += static_cast<uint32_t>(m_serializer.getSize(data))
                                  + eprosima::fastcdr::Cdr::alignment(current_alignment, 4);
             current_alignment += CDR_VECTOR_LEN_SIZE + eprosima::fastcdr::Cdr::alignment(current_alignment, 4);
             current_alignment += CDR_ENCAPSULATION_SIZE + eprosima::fastcdr::Cdr::alignment(current_alignment, 4);
@@ -86,12 +86,12 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
 
     void* createData() override
     {
-        return Serializer<T>::createData();
+        return m_serializer.createData();
     }
 
     void deleteData(void* data) noexcept override
     {
-        Serializer<T>::deleteData(data);
+        m_serializer.deleteData(data);
     }
 
     bool getKey(void*, eprosima::fastrtps::rtps::InstanceHandle_t*, bool) noexcept override
@@ -100,6 +100,8 @@ class FastDDSDataType : public eprosima::fastdds::dds::TopicDataType
     }
 
   private:
+    static inline Serializer m_serializer;
+    
     static constexpr std::size_t CDR_VECTOR_LEN_SIZE = 4;
     static constexpr std::size_t CDR_ENCAPSULATION_SIZE = 4;
 };

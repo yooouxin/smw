@@ -57,11 +57,7 @@ TEST(pub_sub, by_loan)
 
     SearchRequest input_data;
     subscriber.registerReceiveHandler(
-        [&input_data](SamplePtr<const SearchRequest> sample_ptr) {
-
-            input_data = *sample_ptr;
-            std::cout << input_data.DebugString() << "\n";
-        });
+        [&input_data](SamplePtr<const SearchRequest> sample_ptr) { input_data = *sample_ptr; });
 
 
     SearchRequest output_data;

@@ -11,7 +11,7 @@
 #include <fastdds/dds/topic/Topic.hpp>
 namespace smw::core
 {
-template <typename T, template <typename> typename Serializer>
+template <typename T, typename Serializer>
 class FastDDSWriter : public TransportWriter<T>
 {
   public:

@@ -1,6 +1,6 @@
 
 
-set(EXAMPLE_NAME smw_example_pub_sub)
+set(EXAMPLE_NAME smw_example_hello_world_proto)
 
 add_executable(${EXAMPLE_NAME}_pub pub.cpp hello_wrold.pb.cc)
 

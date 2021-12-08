@@ -13,14 +13,14 @@ namespace smw::core
 class DDSFactory
 {
   public:
-    template <typename T, template <typename> typename Serializer>
+    template <typename T, typename Serializer>
     static std::unique_ptr<TransportWriter<T>> createWriter(const std::string& topic_name) noexcept
     {
         /// TODO just return Fast-DDS writer
         return std::make_unique<FastDDSWriter<T, Serializer>>(topic_name);
     }
 
-    template <typename T, template <typename> typename Serializer>
+    template <typename T, typename Serializer>
     static std::unique_ptr<TransportReader<T>> createReader(const std::string& topic_name) noexcept
     {
         /// TODO just return Fast-DDS writer

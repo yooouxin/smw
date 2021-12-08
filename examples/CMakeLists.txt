@@ -1,3 +1,4 @@
 
 
-add_subdirectory(pub_sub)
+add_subdirectory(hello_world_proto)
+add_subdirectory(hello_world_idl)

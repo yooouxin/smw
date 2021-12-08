@@ -40,7 +40,7 @@ class ServiceProxy
     /// @tparam T data type of event
     /// @param event_id id of event
     /// @return created publisher
-    template <typename T, template <typename> typename Serializer = SerializerProtobuf>
+    template <typename T, typename Serializer = SerializerProtobuf<T>>
     Result<std::unique_ptr<Subscriber<T, Serializer>>, ServiceProxyError>
     createSubscriber(std::uint16_t event_id) noexcept
     {

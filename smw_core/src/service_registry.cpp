@@ -3,7 +3,7 @@
 //
 #include "service_registry.h"
 #include "host_id.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "spdlog/spdlog.h"
 
 namespace smw::core
@@ -30,12 +30,21 @@ ServiceRegistry::ServiceRegistry() noexcept
     , m_exit(false)
 {
     m_service_discovery_writer =
-        DDSFactory::createWriter<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+        DDSFactory::createWriter<proto::ServiceDiscovery, SerializerProtobuf<proto::ServiceDiscovery>>(
+            BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_writer != nullptr);
+    if (m_service_discovery_writer == nullptr)
+    {
+        spdlog::error("ServiceRegistry : Can not create discovery writer");
+    }
     m_service_discovery_reader =
-        DDSFactory::createReader<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+        DDSFactory::createReader<proto::ServiceDiscovery, SerializerProtobuf<proto::ServiceDiscovery>>(
+            BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_reader != nullptr);
-
+    if (m_service_discovery_reader == nullptr)
+    {
+        spdlog::error("ServiceRegistry : Can not create discovery reader");
+    }
     auto service_discovery_callback = [this](SamplePtr<const proto::ServiceDiscovery>&& discovery) {
         updateRegistryFromServiceDiscovery(*discovery);
     };
@@ -73,6 +82,7 @@ void ServiceRegistry::updateRegistryFromServiceDiscovery(const proto::ServiceDis
 
     ServiceStatus& service_status = m_registry[service_desc];
 
+    spdlog::debug("ServiceRegistry get discovery message {}", discovery.DebugString());
     switch (discovery.operation())
     {
     case proto::ServiceDiscovery::OFFER:
@@ -197,9 +207,11 @@ void ServiceRegistry::requestDiscoveryOperation(proto::ServiceDiscovery::Service
     discovery_message.set_operation(operation);
     fillServiceInfoMessage(service_description, discovery_message.mutable_service_info());
 
-    /// we write one time here
-    assert(m_service_discovery_writer->write(discovery_message));
+    spdlog::debug("ServiceRegistry discovery message : \n{}", discovery_message.DebugString());
 
+    /// we write one time here
+    bool result = m_service_discovery_writer->write(discovery_message);
+    assert(result);
     /// offer and find need send always,stop offer and stop find need send some time
     if (operation == proto::ServiceDiscovery::OFFER || operation == proto::ServiceDiscovery::FIND)
     {
@@ -237,7 +249,8 @@ void ServiceRegistry::send_and_remove_some_time_message() noexcept
 
     for (auto iter = m_message_need_send_some_times.begin(); iter != m_message_need_send_some_times.end();)
     {
-        assert(m_service_discovery_writer->write(iter->second.discovery_message));
+        bool result = m_service_discovery_writer->write(iter->second.discovery_message);
+        assert(result);
         iter->second.count++;
         if (iter->second.count >= MAX_DISCOVERY_COUNT)
         {
@@ -251,10 +264,12 @@ void ServiceRegistry::send_and_remove_some_time_message() noexcept
 }
 void ServiceRegistry::send_always_message() noexcept
 {
+    spdlog::debug("ServiceRegistry::send_always_message");
     std::unique_lock<std::mutex> lock_msgs_always(m_message_need_send_always_mutex);
     for (auto& message : m_message_need_send_always)
     {
-        assert(m_service_discovery_writer->write(message.second));
+        bool result = m_service_discovery_writer->write(message.second);
+        assert(result);
     }
 }
 

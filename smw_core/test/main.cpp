@@ -1,9 +1,9 @@
 //
 // Created by youxinxin on 2021/11/30.
 //
+#include "spdlog/spdlog.h"
 #include "test.h"
 #include <map>
-
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);

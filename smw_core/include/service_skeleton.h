@@ -53,16 +53,16 @@ class ServiceSkeleton
     /// @tparam T data type of event
     /// @param event_id id of event
     /// @return created publisher
-    template <typename T>
-    Result<std::unique_ptr<Publisher<T>>, ServiceSkeletonError> createPublisher(std::uint16_t event_id) noexcept
+    template <typename T, typename Serializer = SerializerProtobuf<T>>
+    Result<std::unique_ptr<Publisher<T, Serializer>>, ServiceSkeletonError>
+    createPublisher(std::uint16_t event_id) noexcept
     {
         if (!isOffered())
         {
             return Err(ServiceSkeletonError::NOT_OFFER_SERVICE);
         }
 
-        return Ok(std::make_unique<Publisher<T>>(
-            m_service_description, event_id));
+        return Ok(std::make_unique<Publisher<T, Serializer>>(m_service_description, event_id));
     }
 
   private:
