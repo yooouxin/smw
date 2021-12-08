@@ -32,7 +32,7 @@ class FastDDSParticipant
     /// @brief get a Fast-DDS topic
     /// @tparam T data type of this topic
     /// @param topic_name
-    template <typename T, template <typename> typename Serializer>
+    template <typename T, typename Serializer>
     eprosima::fastdds::dds::Topic* getTopic(const std::string& topic_name) noexcept
     {
         std::unique_lock<std::mutex> lock(m_topics_mutex);

@@ -38,7 +38,7 @@ class FastDDSReaderListener : public eprosima::fastdds::dds::DataReaderListener
     std::mutex m_notify_callback_mutex;
 };
 
-template <typename T, template <typename> typename Serializer>
+template <typename T, typename Serializer>
 class FastDDSReader : public TransportReader<T>
 {
   public:

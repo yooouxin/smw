@@ -14,7 +14,7 @@
 namespace smw::core
 {
 
-template <typename T, template <typename> typename Serializer>
+template <typename T, typename Serializer>
 class IceoryxReader : public TransportReader<T>
 {
   public:
@@ -94,7 +94,7 @@ class IceoryxReader : public TransportReader<T>
                         delete ptr;
                     });
 
-                    Serializer<T>::deserialize(user_payload, payloadSize, const_cast<T*>(sample_ptr.get()));
+                    Serializer::deserialize(user_payload, payloadSize, const_cast<T*>(sample_ptr.get()));
                 }
                 else
                 { // Just convert userPayload to data type pointer and pass to user

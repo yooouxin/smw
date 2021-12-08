@@ -27,8 +27,8 @@ int main()
     eprosima::fastdds::dds::Log::SetVerbosity(eprosima::fastdds::dds::Log::Kind::Error);
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    
-    RuntimeOption option{"smw_example_pub"};
+
+    RuntimeOption option{"smw_example_hello_world_pub"};
     auto& runtime = Runtime::initRuntime(option);
     ServiceDescription serviceDescription;
     serviceDescription.service_id = TEST_SERVICE;

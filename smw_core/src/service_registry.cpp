@@ -3,7 +3,7 @@
 //
 #include "service_registry.h"
 #include "host_id.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "spdlog/spdlog.h"
 
 namespace smw::core
@@ -30,10 +30,12 @@ ServiceRegistry::ServiceRegistry() noexcept
     , m_exit(false)
 {
     m_service_discovery_writer =
-        DDSFactory::createWriter<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+        DDSFactory::createWriter<proto::ServiceDiscovery, SerializerProtobuf<proto::ServiceDiscovery>>(
+            BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_writer != nullptr);
     m_service_discovery_reader =
-        DDSFactory::createReader<proto::ServiceDiscovery, SerializerProtobuf>(BUILTIN_SERVICE_DISCOVERY_TOPIC);
+        DDSFactory::createReader<proto::ServiceDiscovery, SerializerProtobuf<proto::ServiceDiscovery>>(
+            BUILTIN_SERVICE_DISCOVERY_TOPIC);
     assert(m_service_discovery_reader != nullptr);
 
     auto service_discovery_callback = [this](SamplePtr<const proto::ServiceDiscovery>&& discovery) {

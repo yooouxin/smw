@@ -9,7 +9,7 @@
 #include "iceoryx/iceoryx_reader.h"
 #include "result.h"
 #include "sample_ptr.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "service_registry.h"
 #include "spdlog/spdlog.h"
 #include <vector>
@@ -24,7 +24,7 @@ enum class SubscriberError
     READ_ERROR
 };
 
-template <typename T, template <typename> typename Serializer = SerializerProtobuf>
+template <typename T, typename Serializer = SerializerProtobuf<T>>
 class Subscriber
 {
   public:

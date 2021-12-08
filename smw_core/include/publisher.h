@@ -9,7 +9,7 @@
 #include "iceoryx/iceoryx_writer.h"
 #include "result.h"
 #include "sample_ptr.h"
-#include "serializer_protobuf.h"
+#include "serializer/serializer_protobuf.h"
 #include "service_registry.h"
 #include "spdlog/spdlog.h"
 
@@ -28,7 +28,7 @@ enum class PublisherError
 /// @brief A general publisher class
 /// @tparam T Data type publisher want transmit
 /// @tparam Serializer serializer of data type,must have some functions
-template <typename T, template <typename> typename Serializer = SerializerProtobuf>
+template <typename T, typename Serializer = SerializerProtobuf<T>>
 class Publisher
 {
   public:

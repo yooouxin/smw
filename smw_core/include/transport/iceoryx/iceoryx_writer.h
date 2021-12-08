@@ -11,7 +11,7 @@
 
 namespace smw::core
 {
-template <typename T, template <typename> typename Serializer>
+template <typename T, typename Serializer>
 class IceoryxWriter : public TransportWriter<T>
 {
   public:
@@ -45,7 +45,7 @@ class IceoryxWriter : public TransportWriter<T>
             .or_else([&user_payload](auto& error) { user_payload = nullptr; });
 
         // Don't crash when loan failed
-        if (!user_payload)
+        if (user_payload == nullptr)
         {
             return nullptr;
         }
@@ -63,7 +63,7 @@ class IceoryxWriter : public TransportWriter<T>
         // dynamic types --> allocate buffer from shared memory and publish by iceoryx
         if constexpr (!IS_FIXED_DATA_TYPE)
         {
-            std::size_t data_size = Serializer<T>::getSize(data.get());
+            std::size_t data_size = Serializer::getSize(data.get());
             void* user_payload = nullptr;
 
             m_iox_publisher->loan(data_size)
@@ -78,7 +78,7 @@ class IceoryxWriter : public TransportWriter<T>
 
             std::size_t serialized_len = 0;
             /// serialize to loaned memory
-            Serializer<T>::serialize(data.get(), user_payload, &serialized_len);
+            Serializer::serialize(data.get(), user_payload, &serialized_len);
             assert(serialized_len == data_size);
 
             m_iox_publisher->publish(user_payload);
