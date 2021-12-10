@@ -42,14 +42,23 @@ int main()
 
     assert(publisher);
 
-    HelloWorld message;
+
     int32_t index = 0;
     while (!exit_request)
     {
-        message.index = index++;
-        message.message = {'H', 'e', 'l', 'l', 'o'};
-        publisher->publish(message).orElse(
-            [](auto& error) { std::cout << static_cast<std::int32_t>(error) << std::endl; });
+        auto sample_ptr =
+            std::move(publisher->loanSample()
+                          .orElse([](auto&& error) { std::cout << static_cast<std::int32_t>(error) << std::endl; })
+                          .getValue());
+        if (!sample_ptr)
+        {
+            break;
+        }
+        sample_ptr->index = index++;
+        sample_ptr->message = {'H', 'e', 'l', 'l', 'o'};
+        publisher->publish(std::move(sample_ptr)).orElse([](auto& error) {
+            std::cout << static_cast<std::int32_t>(error) << std::endl;
+        });
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(1s);
     }

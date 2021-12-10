@@ -28,7 +28,7 @@ int main()
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
 
-    RuntimeOption option{"smw_example_hello_world_sub"};
+    RuntimeOption option{"smw_example_hello_world_sub1"};
     auto& runtime = Runtime::initRuntime(option);
     ServiceDescription serviceDescription;
     serviceDescription.service_id = TEST_SERVICE;

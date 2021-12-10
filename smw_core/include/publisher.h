@@ -93,6 +93,14 @@ class Publisher
                 result = Err(PublisherError::IPC_WRITE_FAILED);
             }
         }
+        else
+        {
+            // Avoid delete by d
+            if (!sample.isHeapAllocated())
+            {
+                sample.release();
+            }
+        }
 
         return result;
     }

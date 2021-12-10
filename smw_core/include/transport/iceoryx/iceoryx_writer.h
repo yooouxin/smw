@@ -50,6 +50,7 @@ class IceoryxWriter : public TransportWriter<T>
             return nullptr;
         }
         auto sample_ptr = SamplePtr<T>(new (user_payload) T{});
+        sample_ptr.markAsNoHeapAllocated();
         return sample_ptr;
     }
 
