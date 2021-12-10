@@ -36,6 +36,7 @@ class SamplePtr
     };
 
     std::unique_ptr<T, Deleter> m_data_ptr;
+    bool m_is_heap_allocated{true};
 
   public:
     SamplePtr() noexcept
@@ -66,6 +67,7 @@ class SamplePtr
     /* shared_ptr( const shared_ptr&& r ) noexcept; */
     SamplePtr(SamplePtr<T>&& other) noexcept
         : m_data_ptr(std::move(other.m_data_ptr))
+        , m_is_heap_allocated(std::move(other.m_is_heap_allocated))
     {
     }
 
@@ -83,6 +85,7 @@ class SamplePtr
     SamplePtr& operator=(SamplePtr<T>&& other) noexcept
     {
         m_data_ptr = std::move(other.m_data_ptr);
+        m_is_heap_allocated = std::move(other.m_is_heap_allocated);
         return *this;
     }
 
@@ -93,6 +96,7 @@ class SamplePtr
     {
         using std::swap;
         swap(m_data_ptr, other.m_data_ptr);
+        swap(m_is_heap_allocated, other.m_is_heap_allocated);
     }
 
     /* void unique_ptr::reset(std::nullptr_t) noexcept; */
@@ -128,6 +132,16 @@ class SamplePtr
     T* get() const noexcept
     {
         return m_data_ptr.get();
+    }
+
+    void markAsNoHeapAllocated() noexcept
+    {
+        m_is_heap_allocated = false;
+    }
+
+    bool isHeapAllocated() const noexcept
+    {
+        return m_is_heap_allocated;
     }
 };
 
